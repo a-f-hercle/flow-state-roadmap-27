@@ -4,11 +4,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { mockReviewers } from "@/data/mock-data";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Users } from "lucide-react";
 import { useProjects } from "@/context/project-context";
+import { useNavigate } from "react-router-dom";
 
 export default function Teams() {
   const { projects } = useProjects();
+  const navigate = useNavigate();
   
   // Group projects by team
   const projectsByTeam = projects.reduce((acc, project) => {
@@ -75,6 +77,10 @@ export default function Teams() {
       color: "bg-pink-100"
     }
   ];
+
+  const handleViewTeam = (teamName: string) => {
+    navigate(`/teams/${encodeURIComponent(teamName)}`);
+  };
   
   return (
     <div className="space-y-6">
@@ -128,7 +134,14 @@ export default function Teams() {
             </CardContent>
             
             <CardFooter>
-              <Button variant="outline" className="w-full">View Team</Button>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => handleViewTeam(team.name)}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                View Team
+              </Button>
             </CardFooter>
           </Card>
         ))}
