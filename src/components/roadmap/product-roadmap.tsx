@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { RoadmapItem } from "./roadmap-item";
 
-// Define team colors
 const teamColors = {
   "Tech Trading": "bg-indigo-100 border-indigo-300 hover:bg-indigo-200",
   "Tech Custody & Banking": "bg-yellow-100 border-yellow-300 hover:bg-yellow-200",
@@ -24,7 +23,6 @@ const teamColors = {
   "Business Operations": "bg-pink-100 border-pink-300 hover:bg-pink-200"
 };
 
-// Define the task status styles
 const statusStyles = {
   "completed": "border-l-4 border-l-green-500",
   "in-progress": "border-l-4 border-l-blue-500",
@@ -38,10 +36,8 @@ export function ProductRoadmap() {
   const { projects } = useProjects();
   const [isDragging, setIsDragging] = useState(false);
   
-  // Include all projects on the roadmap by providing default values if missing
   const roadmapProjects = useMemo(() => {
     return projects.map(project => {
-      // Add default values for projects missing roadmap data
       return {
         ...project,
         startDate: project.startDate || new Date(),
@@ -51,7 +47,6 @@ export function ProductRoadmap() {
     });
   }, [projects]);
   
-  // Group projects by team
   const projectsByTeam = useMemo(() => {
     const grouped = roadmapProjects.reduce((groups, project) => {
       if (!groups[project.team]) {
@@ -98,13 +93,10 @@ export function ProductRoadmap() {
     }
   }, [isDragging]);
 
-  // Calculate project position and width on the timeline based on dates
-  // This will prevent overlaps by arranging them in rows
   const getProjectPositionAndRows = (team: string) => {
     const projects = projectsByTeam[team];
     if (!projects) return [];
     
-    // Sort projects by start date
     const sortedProjects = [...projects].sort((a, b) => 
       a.startDate!.getTime() - b.startDate!.getTime()
     );
@@ -116,25 +108,21 @@ export function ProductRoadmap() {
       width: string;
     }[] = [];
     
-    // For each project find a row where it doesn't overlap
     sortedProjects.forEach(project => {
       const startTime = project.startDate!.getTime();
       const endTime = project.endDate!.getTime();
       
-      // Find the first available row
       let rowIndex = 0;
       let foundRow = false;
       
       while (!foundRow) {
         foundRow = true;
         
-        // Check if this project overlaps with any project in the current row
         for (const item of rows) {
           if (item.row === rowIndex) {
             const itemStartTime = item.project.startDate!.getTime();
             const itemEndTime = item.project.endDate!.getTime();
             
-            // Check for overlap
             if (!(endTime <= itemStartTime || startTime >= itemEndTime)) {
               foundRow = false;
               break;
@@ -147,15 +135,13 @@ export function ProductRoadmap() {
         }
       }
       
-      // Calculate position
       const startMonth = project.startDate!.getMonth();
       const startDay = project.startDate!.getDate();
       const leftPos = `${(startMonth * 100 / 12) + (startDay / 30) * (100 / 12)}%`;
       
-      // Calculate width (duration in months)
       const durationInDays = (endTime - startTime) / (1000 * 60 * 60 * 24);
-      const durationInMonths = durationInDays / 30; // Approximate
-      const width = `${Math.max(durationInMonths * (100 / 12), 4)}%`; // Minimum width of 4%
+      const durationInMonths = durationInDays / 30;
+      const width = `${Math.max(durationInMonths * (100 / 12), 4)}%`;
       
       rows.push({
         project,
@@ -167,7 +153,7 @@ export function ProductRoadmap() {
     
     return rows;
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -217,7 +203,6 @@ export function ProductRoadmap() {
           <CardContent onClick={handleTimelineClick}>
             <div className="overflow-x-auto">
               <div className="min-w-[1200px]">
-                {/* Month Headers */}
                 <div className="grid grid-cols-12 gap-0 border-b">
                   {Array.from({ length: 12 }).map((_, index) => {
                     const date = new Date(2025, index, 1);
@@ -229,19 +214,16 @@ export function ProductRoadmap() {
                   })}
                 </div>
                 
-                {/* Team Rows */}
                 {filteredTeams.map(team => (
                   <div key={team} className="border-b last:border-b-0">
                     <div className="grid grid-cols-12 gap-0 relative">
-                      {/* Team Name */}
                       <div className="absolute left-0 top-0 bottom-0 bg-white dark:bg-gray-950 z-10 p-4 flex items-center font-medium border-r">
                         <div className="w-32">{team}</div>
                       </div>
                       
-                      {/* Project Blocks */}
-                      <div className="col-span-12 min-h-60 pt-2 pb-4 pl-36 relative roadmap-timeline">
+                      <div className="col-span-12 min-h-60 pt-2 pb-8 pl-36 relative roadmap-timeline">
                         {getProjectPositionAndRows(team).map(({ project, row, leftPos, width }) => {
-                          const topPos = `${row * 35 + 10}px`; // Position based on calculated row
+                          const topPos = `${row * 45 + 8}px`;
                           const projectStatus = project.status || 'planned';
                           
                           return (
@@ -252,7 +234,7 @@ export function ProductRoadmap() {
                               statusStyle={statusStyles[projectStatus as keyof typeof statusStyles]}
                               leftPos={leftPos}
                               width={width}
-                              topPos={`-35px`} // Move to top instead of bottom
+                              topPos={topPos}
                               onMoveStart={handleMoveStart}
                               onProjectClick={handleProjectClick}
                             />
@@ -268,7 +250,6 @@ export function ProductRoadmap() {
         </Card>
       )}
       
-      {/* Legend */}
       <div className="flex flex-wrap gap-4 items-center justify-end">
         <div className="text-sm font-medium">Status:</div>
         <div className="flex items-center">
