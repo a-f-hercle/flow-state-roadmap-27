@@ -15,7 +15,8 @@ import {
   Calendar, 
   Edit, 
   FilePlus, 
-  ClipboardCheck 
+  ClipboardCheck,
+  MessageCircle
 } from "lucide-react";
 
 interface ProjectHistoryProps {
@@ -125,6 +126,14 @@ export function ProjectHistory({ history }: ProjectHistoryProps) {
                       `Modified project`
                   )}
                 </p>
+                
+                {/* Display user comment if available */}
+                {entry.comment && (
+                  <div className="flex items-start mt-2 bg-muted/40 p-2 rounded-md">
+                    <MessageCircle className="h-4 w-4 mt-0.5 mr-2 text-muted-foreground" />
+                    <p className="text-sm italic">"{entry.comment}"</p>
+                  </div>
+                )}
               </div>
             </div>
           ))}

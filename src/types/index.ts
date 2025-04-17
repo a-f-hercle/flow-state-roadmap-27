@@ -28,6 +28,7 @@ export type HistoryEntry = {
   timestamp: Date;
   action: HistoryAction;
   user: string;
+  comment?: string; // Added comment field for user comments
   details: {
     field?: string;
     previousValue?: any;

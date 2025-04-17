@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "@/components/ui/use-toast";
 import { useForm } from "react-hook-form";
-import { Check, X } from "lucide-react";
+import { Check, X, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 
 type EditProjectDialogProps = {
   open: boolean;
@@ -31,6 +32,7 @@ type ProjectFormValues = {
   endDate?: string;
   status?: string;
   category?: string;
+  comment: string; // Added comment field
 };
 
 export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogProps) {
@@ -51,6 +53,7 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
       endDate: project.endDate ? project.endDate.toISOString().split("T")[0] : undefined,
       status: project.status,
       category: project.category,
+      comment: "", // Initialize with empty comment
     },
   });
   
@@ -94,7 +97,7 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
       delete updatedProject.displayOnRoadmap;
     }
     
-    updateProject(updatedProject);
+    updateProject(updatedProject, values.comment.trim()); // Pass the comment to updateProject
     toast({
       title: "Project updated",
       description: "Your project has been updated successfully.",
@@ -306,6 +309,31 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
                 </div>
               </div>
             )}
+            
+            {/* Add comment section */}
+            <Separator />
+            <div className="pt-2">
+              <FormField
+                control={form.control}
+                name="comment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <MessageCircle className="h-4 w-4" />
+                      Comment about this change (will show in history)
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="What changes are you making and why?" 
+                        className="min-h-[80px]"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <div className="flex justify-end space-x-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>

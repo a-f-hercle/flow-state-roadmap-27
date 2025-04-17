@@ -6,7 +6,7 @@ import { mockProjects } from '@/data/mock-data';
 interface ProjectContextType {
   projects: Project[];
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateProject: (project: Project) => void;
+  updateProject: (project: Project, comment?: string) => void; // Added comment parameter
   updatePhase: (projectId: string, phase: ProjectPhase, data: Partial<Project['phases'][ProjectPhase]>) => void;
   updateReview: (projectId: string, phase: ProjectPhase, reviewerId: string, status: ReviewStatus, feedback?: string) => void;
   getProject: (id: string) => Project | undefined;
@@ -40,13 +40,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       previousValue?: any;
       newValue?: any;
       description?: string;
-    }
+    },
+    comment?: string // Added comment parameter
   ) => {
     const historyEntry = {
       id: Date.now().toString(),
       timestamp: new Date(),
       action,
       user: 'Current User', // In a real app, this would come from auth context
+      comment, // Add comment to the history entry if provided
       details
     };
 
@@ -79,7 +81,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setProjects([...projects, newProject]);
   };
 
-  const updateProject = (updatedProject: Project) => {
+  const updateProject = (updatedProject: Project, comment?: string) => { // Added comment parameter
     setProjects(
       projects.map((project) => {
         if (project.id === updatedProject.id) {
@@ -155,9 +157,22 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
                 previousValue: change.previous,
                 newValue: change.new,
                 description: `Changed ${change.field} from "${change.previous}" to "${change.new}"`
-              }
+              },
+              comment // Pass the comment to the history entry
             );
           });
+          
+          // If there are no changes but there's a comment, create a generic updated entry
+          if (changedFields.length === 0 && comment) {
+            projectWithHistory = addHistoryEntry(
+              projectWithHistory,
+              'updated',
+              {
+                description: 'Project details updated'
+              },
+              comment
+            );
+          }
           
           return projectWithHistory;
         }
