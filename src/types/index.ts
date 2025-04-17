@@ -42,7 +42,7 @@ export type Project = {
   updatedAt: Date;
 };
 
-export type TaskCategory = 'feature' | 'bugfix' | 'improvement' | 'refactor' | 'infrastructure' | 'documentation';
+export type TaskCategory = 'feature' | 'bugfix' | 'improvement' | 'refactor' | 'infrastructure' | 'documentation' | 'compliance' | 'security';
 
 export type TaskStatus = 'planned' | 'in-progress' | 'completed' | 'blocked';
 

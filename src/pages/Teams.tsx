@@ -16,37 +16,49 @@ export default function Teams() {
     return acc;
   }, {} as Record<string, typeof projects>);
   
-  // Create team structures from mock reviewers
+  // Create team structures from the image
   const teams = [
     {
-      name: "Product Experience",
-      description: "Focused on customer-facing product features",
-      members: mockReviewers.slice(0, 3),
-      projectCount: projectsByTeam["Product Experience"]?.length || 0
+      name: "Tech Trading",
+      description: "Trading platform development and enhancements",
+      members: [mockReviewers[0], mockReviewers[6]],
+      projectCount: projectsByTeam["Tech Trading"]?.length || 0,
+      color: "bg-indigo-100"
     },
     {
-      name: "Operations",
-      description: "Internal tools and operational efficiency",
-      members: mockReviewers.slice(3, 5),
-      projectCount: projectsByTeam["Operations"]?.length || 0
+      name: "Tech Custody & Banking",
+      description: "Banking solutions and custody services",
+      members: [mockReviewers[4], mockReviewers[7]],
+      projectCount: projectsByTeam["Tech Custody & Banking"]?.length || 0,
+      color: "bg-yellow-100"
     },
     {
-      name: "E-commerce",
-      description: "Online shopping experience and conversion",
-      members: [mockReviewers[1], mockReviewers[5], mockReviewers[6]],
-      projectCount: projectsByTeam["E-commerce"]?.length || 0
+      name: "Tech PMS",
+      description: "Portfolio Management Systems",
+      members: [mockReviewers[3], mockReviewers[2]],
+      projectCount: projectsByTeam["Tech PMS"]?.length || 0,
+      color: "bg-red-100"
     },
     {
-      name: "Data",
-      description: "Analytics and data insights",
-      members: [mockReviewers[3], mockReviewers[7]],
-      projectCount: projectsByTeam["Data"]?.length || 0
+      name: "Tech Execution",
+      description: "Trade execution systems and services",
+      members: [mockReviewers[6], mockReviewers[1], mockReviewers[5]],
+      projectCount: projectsByTeam["Tech Execution"]?.length || 0,
+      color: "bg-green-100"
     },
     {
-      name: "Supply Chain",
-      description: "Supply chain management and logistics",
-      members: [mockReviewers[2], mockReviewers[4], mockReviewers[7]],
-      projectCount: projectsByTeam["Supply Chain"]?.length || 0
+      name: "Tech Infrastructure",
+      description: "Core platform infrastructure and security",
+      members: [mockReviewers[0], mockReviewers[6]],
+      projectCount: projectsByTeam["Tech Infrastructure"]?.length || 0,
+      color: "bg-orange-100"
+    },
+    {
+      name: "Business Operations",
+      description: "Business process optimization and tools",
+      members: [mockReviewers[4], mockReviewers[5], mockReviewers[2]],
+      projectCount: projectsByTeam["Business Operations"]?.length || 0,
+      color: "bg-pink-100"
     }
   ];
   
@@ -56,7 +68,7 @@ export default function Teams() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Teams</h1>
           <p className="text-muted-foreground">
-            View and manage teams across your organization
+            View and manage teams across the organization
           </p>
         </div>
         <Button>
@@ -67,8 +79,8 @@ export default function Teams() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {teams.map(team => (
-          <Card key={team.name}>
-            <CardHeader>
+          <Card key={team.name} className={`border-l-4 border-l-${team.color.split('-')[1]}-300`}>
+            <CardHeader className={team.color}>
               <div className="flex justify-between items-start">
                 <CardTitle>{team.name}</CardTitle>
                 <Badge variant="outline">
@@ -78,7 +90,7 @@ export default function Teams() {
               <CardDescription>{team.description}</CardDescription>
             </CardHeader>
             
-            <CardContent>
+            <CardContent className="pt-4">
               <div className="flex -space-x-2">
                 {team.members.map(member => (
                   <Avatar key={member.id} className="border-2 border-background h-8 w-8">

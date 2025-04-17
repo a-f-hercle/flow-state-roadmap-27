@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   Card, 
@@ -21,121 +22,8 @@ import {
   AlertCircle
 } from "lucide-react";
 import { format } from "date-fns";
-import { Task, TaskCategory, TaskStatus } from "@/types";
-
-// Same mock data as in product-roadmap.tsx for simplicity
-const mockTasks: Task[] = [
-  {
-    id: "task-1",
-    title: "High Availability",
-    description: "Implement high availability for the trading platform",
-    category: "infrastructure",
-    status: "completed",
-    startDate: new Date(2023, 0, 1),
-    endDate: new Date(2023, 1, 15),
-    team: "Tech Trading",
-    color: "bg-indigo-100 border-indigo-300"
-  },
-  {
-    id: "task-2",
-    title: "Pricing Adjustment",
-    description: "Adjust pricing algorithms based on market trends",
-    category: "feature",
-    status: "completed",
-    startDate: new Date(2023, 1, 10),
-    endDate: new Date(2023, 2, 5),
-    team: "Tech Trading",
-    color: "bg-indigo-100 border-indigo-300"
-  },
-  {
-    id: "task-3",
-    title: "DNSH Integration - Taxes",
-    description: "Integrate tax calculation system with DNSH",
-    category: "feature",
-    status: "in-progress",
-    startDate: new Date(2023, 2, 1),
-    endDate: new Date(2023, 3, 15),
-    team: "Tech Trading",
-    color: "bg-indigo-100 border-indigo-300"
-  },
-  {
-    id: "task-4",
-    title: "Delayed Settlement",
-    description: "Implement delayed settlement functionality",
-    category: "feature",
-    status: "planned",
-    startDate: new Date(2023, 3, 10),
-    endDate: new Date(2023, 4, 20),
-    team: "Tech Trading",
-    color: "bg-indigo-100 border-indigo-300"
-  },
-  {
-    id: "task-5",
-    title: "Bank Integration",
-    description: "Integrate with major banks APIs",
-    category: "feature",
-    status: "completed",
-    startDate: new Date(2023, 0, 15),
-    endDate: new Date(2023, 1, 28),
-    team: "Tech Custody & Banking",
-    color: "bg-yellow-100 border-yellow-300"
-  },
-  {
-    id: "task-6",
-    title: "ExportTxt",
-    description: "Add export to text file functionality",
-    category: "feature",
-    status: "completed",
-    startDate: new Date(2023, 1, 20),
-    endDate: new Date(2023, 2, 10),
-    team: "Tech Custody & Banking",
-    color: "bg-yellow-100 border-yellow-300"
-  },
-  {
-    id: "task-7",
-    title: "Accounting System & Reporting",
-    description: "Build new accounting and reporting system",
-    category: "feature",
-    status: "in-progress",
-    startDate: new Date(2023, 0, 5),
-    endDate: new Date(2023, 2, 25),
-    team: "Tech PMS",
-    color: "bg-red-100 border-red-300"
-  },
-  {
-    id: "task-8",
-    title: "High Availability",
-    description: "Improve system uptime and reliability",
-    category: "infrastructure",
-    status: "completed",
-    startDate: new Date(2023, 0, 10),
-    endDate: new Date(2023, 2, 15),
-    team: "Tech Execution",
-    color: "bg-green-100 border-green-300"
-  },
-  {
-    id: "task-9",
-    title: "Staging env",
-    description: "Set up new staging environment",
-    category: "infrastructure",
-    status: "planned",
-    startDate: new Date(2023, 0, 1),
-    endDate: new Date(2023, 0, 31),
-    team: "Tech Infrastructure",
-    color: "bg-orange-100 border-orange-300"
-  },
-  {
-    id: "task-10",
-    title: "Product - Commercial - Tech - Process",
-    description: "Streamline cross-departmental workflows",
-    category: "improvement",
-    status: "planned",
-    startDate: new Date(2023, 1, 15),
-    endDate: new Date(2023, 3, 15),
-    team: "Business Operations",
-    color: "bg-pink-100 border-pink-300"
-  }
-];
+import { TaskCategory, TaskStatus } from "@/types";
+import { mockTasks } from "@/data/mock-data";
 
 const categoryColors: Record<TaskCategory, string> = {
   feature: "bg-blue-500",
@@ -143,7 +31,9 @@ const categoryColors: Record<TaskCategory, string> = {
   improvement: "bg-green-500",
   refactor: "bg-yellow-500",
   infrastructure: "bg-purple-500",
-  documentation: "bg-gray-500"
+  documentation: "bg-gray-500",
+  compliance: "bg-teal-500",
+  security: "bg-orange-500"
 };
 
 const statusIcons: Record<TaskStatus, any> = {
@@ -194,12 +84,14 @@ export function TaskDetail() {
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-2">
-                <StatusIcon className={`h-5 w-5 ${task.status === 'completed' ? 'text-green-500' : task.status === 'blocked' ? 'text-red-500' : 'text-muted-foreground'}`} />
+                <StatusIcon className={`h-5 w-5 ${task.status === 'completed' ? 'text-green-500' : task.status === 'blocked' ? 'text-red-500' : task.status === 'in-progress' ? 'text-blue-500' : 'text-amber-500'}`} />
                 <span>Status: <span className="font-medium capitalize">{task.status}</span></span>
               </div>
-              <Badge className={`${categoryColors[task.category]} text-white`}>
-                {task.category}
-              </Badge>
+              {task.category && (
+                <Badge className={`${categoryColors[task.category as keyof typeof categoryColors]} text-white`}>
+                  {task.category}
+                </Badge>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -221,7 +113,7 @@ export function TaskDetail() {
               
               <div className="flex items-center">
                 <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground mr-2">ETA:</span>
+                <span className="text-sm text-muted-foreground mr-2">Duration:</span>
                 <span className="font-medium">
                   {Math.round((task.endDate.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24))} days
                 </span>
@@ -259,22 +151,36 @@ export function TaskDetail() {
                 <div>
                   <p className="font-medium">Task Created</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(task.startDate, "MMM d, yyyy")}
+                    {format(new Date(task.startDate.getTime() - 86400000 * 5), "MMM d, yyyy")}
                   </p>
                 </div>
               </div>
               
               <div className="relative pl-10 pb-6">
                 <div className="absolute left-0 w-8 h-8 bg-background border rounded-full flex items-center justify-center">
-                  <CircleDashed className="h-4 w-4 text-muted-foreground" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="font-medium">Work Started</p>
+                  <p className="font-medium">Scheduled Start</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(task.startDate.getTime() + 86400000), "MMM d, yyyy")}
+                    {format(task.startDate, "MMM d, yyyy")}
                   </p>
                 </div>
               </div>
+              
+              {task.status === 'in-progress' && (
+                <div className="relative pl-10 pb-6">
+                  <div className="absolute left-0 w-8 h-8 bg-background border rounded-full flex items-center justify-center">
+                    <CircleDashed className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Work Started</p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(task.startDate.getTime() + 86400000), "MMM d, yyyy")}
+                    </p>
+                  </div>
+                </div>
+              )}
               
               {task.status === 'completed' ? (
                 <div className="relative pl-10">
@@ -305,6 +211,49 @@ export function TaskDetail() {
           </CardContent>
         </Card>
       </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Related Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium mb-2">Team Context</h3>
+              <p className="text-sm text-muted-foreground">
+                This task is part of the {task.team} team's 2025 roadmap initiatives.
+                {task.team === "Tech Trading" && " Focused on enhancing trading capabilities and reliability."}
+                {task.team === "Tech Custody & Banking" && " Working on secure banking integrations and services."}
+                {task.team === "Tech PMS" && " Building advanced portfolio management systems."}
+                {task.team === "Tech Execution" && " Improving trade execution reliability and performance."}
+                {task.team === "Tech Infrastructure" && " Enhancing platform stability and security."}
+                {task.team === "Business Operations" && " Streamlining business processes and tools."}
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="font-medium mb-2">Dependencies</h3>
+              {task.team === "Tech Trading" && task.title === "Delayed Settlement" ? (
+                <p className="text-sm">This task depends on the "Delayed Settlement Account" task from Tech PMS team.</p>
+              ) : task.team === "Tech PMS" && task.title === "Delayed Settlement Account" ? (
+                <p className="text-sm">The "Delayed Settlement" task from Tech Trading team depends on this task.</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">No critical dependencies identified for this task.</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="border-t bg-muted/50 p-4">
+          <div className="flex justify-end w-full">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate("/roadmap")}
+            >
+              Back to Roadmap
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
