@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useProjects } from "@/context/project-context";
 import { Button } from "@/components/ui/button";
@@ -8,15 +7,18 @@ import { PhaseBadge } from "@/components/ui/phase-badge";
 import { PhaseTimeline } from "@/components/project/phase-timeline";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { ArrowLeft, Calendar, Clock, Users, Tag } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Users, Tag, Edit } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { mockReviewers } from "@/data/mock-data";
 import { ReviewStatus } from "@/types";
+import { useState } from "react";
+import { EditProjectDialog } from "@/components/project/edit-project-dialog";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getProject, updateReview } = useProjects();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const project = getProject(id || "");
   
@@ -50,21 +52,32 @@ export default function ProjectDetail() {
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate("/projects")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">{project.title}</h1>
-            <PhaseBadge phase={project.currentPhase} />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate("/projects")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight">{project.title}</h1>
+              <PhaseBadge phase={project.currentPhase} />
+            </div>
+            <p className="text-muted-foreground">{project.description}</p>
           </div>
-          <p className="text-muted-foreground">{project.description}</p>
         </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="gap-1"
+          onClick={() => setIsEditDialogOpen(true)}
+        >
+          <Edit className="h-4 w-4" />
+          Edit Project
+        </Button>
       </div>
       
       <div className="flex flex-wrap gap-4">
@@ -221,6 +234,12 @@ export default function ProjectDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      <EditProjectDialog 
+        open={isEditDialogOpen} 
+        setOpen={setIsEditDialogOpen}
+        project={project}
+      />
     </div>
   );
 }

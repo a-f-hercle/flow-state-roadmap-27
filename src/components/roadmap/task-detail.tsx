@@ -1,5 +1,5 @@
 
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { 
   Card, 
   CardContent, 
@@ -19,11 +19,14 @@ import {
   CheckCircle2,
   Circle,
   CircleDashed,
-  AlertCircle
+  AlertCircle,
+  Edit
 } from "lucide-react";
 import { format } from "date-fns";
 import { TaskCategory } from "@/types";
 import { useProjects } from "@/context/project-context";
+import { useState } from "react";
+import { EditProjectDialog } from "@/components/project/edit-project-dialog";
 
 const categoryColors: Record<TaskCategory, string> = {
   feature: "bg-blue-500",
@@ -43,10 +46,14 @@ const statusIcons = {
   "blocked": AlertCircle
 };
 
-export function TaskDetail() {
-  const { id } = useParams<{ id: string }>();
+interface TaskDetailProps {
+  id?: string;
+}
+
+export function TaskDetail({ id }: TaskDetailProps) {
   const navigate = useNavigate();
   const { getProject } = useProjects();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const project = getProject(id || "");
   
@@ -65,18 +72,29 @@ export function TaskDetail() {
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate("/roadmap")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{project.title}</h1>
-          <p className="text-muted-foreground">{project.description}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate("/roadmap")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{project.title}</h1>
+            <p className="text-muted-foreground">{project.description}</p>
+          </div>
         </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="gap-1"
+          onClick={() => setIsEditDialogOpen(true)}
+        >
+          <Edit className="h-4 w-4" />
+          Edit Project
+        </Button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -272,6 +290,12 @@ export function TaskDetail() {
           </div>
         </CardFooter>
       </Card>
+      
+      <EditProjectDialog 
+        open={isEditDialogOpen} 
+        setOpen={setIsEditDialogOpen}
+        project={project}
+      />
     </div>
   );
 }
