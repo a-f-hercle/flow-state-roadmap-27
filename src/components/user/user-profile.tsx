@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
+import { useNavigate } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -24,14 +25,24 @@ type TeamInvite = {
   team_name: string;
   role: string;
   email: string;
+  name?: string;
 };
+
+type TeamMember = {
+  id: string;
+  team_name: string;
+  role: string;
+  name?: string;
+}
 
 export function UserProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [teamInvites, setTeamInvites] = useState<TeamInvite[]>([]);
+  const [teamMemberships, setTeamMemberships] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInvitesLoading, setIsInvitesLoading] = useState(true);
+  const [isMembershipsLoading, setIsMembershipsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [formData, setFormData] = useState<Partial<Profile>>({});
   const { toast } = useToast();
@@ -85,8 +96,30 @@ export function UserProfile() {
       }
     }
 
+    async function fetchTeamMemberships() {
+      if (!user) return;
+      
+      try {
+        setIsMembershipsLoading(true);
+        const { data, error } = await supabase
+          .from("team_members")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("invited", false);
+          
+        if (error) throw error;
+        
+        setTeamMemberships(data as TeamMember[]);
+      } catch (error) {
+        console.error("Error fetching team memberships:", error);
+      } finally {
+        setIsMembershipsLoading(false);
+      }
+    }
+
     fetchProfile();
     checkTeamInvites();
+    fetchTeamMemberships();
   }, [user]);
 
   async function updateProfile() {
@@ -137,18 +170,24 @@ export function UserProfile() {
       setIsInvitesLoading(true);
       
       // Update team_members record to link with user
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("team_members")
         .update({
           user_id: user.id,
           invited: false,
         })
-        .eq("id", inviteId);
+        .eq("id", inviteId)
+        .select();
         
       if (error) throw error;
       
       // Remove accepted invite from local state
       setTeamInvites(prev => prev.filter(invite => invite.id !== inviteId));
+      
+      // Add to team memberships
+      if (data && data.length > 0) {
+        setTeamMemberships(prev => [...prev, data[0] as TeamMember]);
+      }
       
       toast({
         title: "Team invite accepted",
@@ -209,6 +248,7 @@ export function UserProfile() {
 
   return (
     <div className="space-y-6">
+      {/* Team Invitations Section */}
       {teamInvites.length > 0 && (
         <Card>
           <CardHeader>
@@ -253,6 +293,44 @@ export function UserProfile() {
         </Card>
       )}
 
+      {/* Team Memberships Section */}
+      {teamMemberships.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Teams</CardTitle>
+            <CardDescription>
+              Teams that you are currently a member of
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isMembershipsLoading ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin h-6 w-6 border-t-2 border-b-2 border-primary rounded-full"></div>
+                </div>
+              ) : (
+                teamMemberships.map(membership => (
+                  <div key={membership.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h3 className="font-semibold">{membership.team_name}</h3>
+                      <p className="text-sm text-muted-foreground">Role: {membership.role}</p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/teams/${membership.team_name}`)}
+                    >
+                      View Team
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Profile Card */}
       <Card>
         <CardHeader>
           <CardTitle>Your Profile</CardTitle>

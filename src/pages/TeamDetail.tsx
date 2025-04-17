@@ -51,6 +51,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Define the form schema
 const addMemberSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   role: z.string().min(2, { message: "Role must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
 });
@@ -59,7 +60,7 @@ type AddMemberFormValues = z.infer<typeof addMemberSchema>;
 
 type TeamMember = {
   id: string;
-  name?: string;
+  name: string;
   role: string;
   avatar?: string;
   email: string;
@@ -86,6 +87,7 @@ export default function TeamDetail() {
   const form = useForm<AddMemberFormValues>({
     resolver: zodResolver(addMemberSchema),
     defaultValues: {
+      name: "",
       role: "",
       email: "",
     },
@@ -108,12 +110,12 @@ export default function TeamDetail() {
         // Transform database records to TeamMember format
         const formattedMembers: TeamMember[] = data.map(member => ({
           id: member.id,
+          name: member.email?.split('@')[0] || 'Unnamed',
           role: member.role,
           email: member.email || '',
           avatar: member.avatar_url || undefined,
           user_id: member.user_id || undefined,
           invited: member.invited || false,
-          name: member.email?.split('@')[0] || undefined,
         }));
         
         setTeamMembers(formattedMembers);
@@ -179,7 +181,8 @@ export default function TeamDetail() {
           role: data.role,
           email: data.email,
           invited: true,
-          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.email.split('@')[0])}`,
+          // Create an avatar with the provided name
+          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}`,
         })
         .select()
         .single();
@@ -189,11 +192,11 @@ export default function TeamDetail() {
       // Update local state with the new member
       const newTeamMember: TeamMember = {
         id: newMember.id,
+        name: data.name,
         role: newMember.role,
         email: newMember.email || '',
         avatar: newMember.avatar_url || undefined,
         invited: true,
-        name: newMember.email?.split('@')[0] || undefined,
       };
       
       setTeamMembers(prev => [...prev, newTeamMember]);
@@ -251,12 +254,12 @@ export default function TeamDetail() {
               teamMembers.map(member => (
                 <div key={member.id} className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={member.avatar} alt={member.name || member.email} />
-                    <AvatarFallback>{(member.name || member.email)[0].toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={member.avatar} alt={member.name} />
+                    <AvatarFallback>{member.name[0].toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <p className="font-medium">
-                      {member.name || member.email.split('@')[0]}
+                      {member.name}
                       {member.invited && !member.user_id && (
                         <Badge variant="outline" className="ml-2 text-xs">Invited</Badge>
                       )}
@@ -346,12 +349,12 @@ export default function TeamDetail() {
                 <div key={member.id} className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={member.avatar} alt={member.name || member.email} />
-                      <AvatarFallback>{(member.name || member.email)[0].toUpperCase()}</AvatarFallback>
+                      <AvatarImage src={member.avatar} alt={member.name} />
+                      <AvatarFallback>{member.name[0].toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium text-sm">
-                        {member.name || member.email.split('@')[0]}
+                        {member.name}
                         {member.invited && !member.user_id && (
                           <Badge variant="outline" className="ml-2 text-xs">Invited</Badge>
                         )}
@@ -401,6 +404,20 @@ export default function TeamDetail() {
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onAddMemberSubmit)} className="space-y-6 py-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <FormField
                 control={form.control}
                 name="email"

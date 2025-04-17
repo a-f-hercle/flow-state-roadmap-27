@@ -33,6 +33,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             title: "Signed in successfully",
             description: `Welcome${currentSession?.user?.email ? ', ' + currentSession.user.email : ''}!`,
           });
+          
+          // Check if this user was invited to any teams
+          if (currentSession?.user?.email) {
+            setTimeout(() => {
+              linkUserToTeamInvites(currentSession.user!.id, currentSession.user!.email!);
+            }, 0);
+          }
         }
         
         if (event === 'SIGNED_OUT') {
@@ -50,6 +57,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, [toast]);
+
+  // Function to link a user to any team invites that match their email
+  async function linkUserToTeamInvites(userId: string, email: string) {
+    try {
+      // Find any team_members records with matching email but no user_id
+      const { data, error } = await supabase
+        .from('team_members')
+        .update({ user_id: userId, invited: false })
+        .match({ email: email, user_id: null })
+        .select();
+      
+      if (error) throw error;
+      
+      // If any team invites were linked
+      if (data && data.length > 0) {
+        toast({
+          title: "Team assignments linked",
+          description: `You've been linked to ${data.length} team(s) based on your email`,
+        });
+      }
+    } catch (error) {
+      console.error("Error linking user to team invites:", error);
+    }
+  }
 
   async function signOut() {
     try {
