@@ -9,7 +9,7 @@ import {
 import { toast as sonnerToast } from "@/components/ui/sonner";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
-import { TeamMember } from "./team-member-list";
+import { TeamMember } from "./types/team-member";
 import { AddMemberForm } from "./add-member-form";
 import { AddMemberFormValues } from "./schemas/member-form-schema";
 import { addTeamMember } from "./services/team-member-service";

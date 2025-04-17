@@ -7,16 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchTeamMembers } from "./services/team-member-service";
-
-export type TeamMember = {
-  id: string;
-  name: string; // This is derived from email, not from the database
-  role: string;
-  avatar?: string;
-  email: string;
-  user_id?: string;
-  invited: boolean;
-};
+import { TeamMember } from "./types/team-member";
 
 interface TeamMemberListProps {
   teamName: string;
@@ -65,12 +56,12 @@ export const TeamMemberList = ({ teamName, onAddMember }: TeamMemberListProps) =
           teamMembers.map(member => (
             <div key={member.id} className="flex items-center gap-3">
               <Avatar>
-                <AvatarImage src={member.avatar} alt={member.name} />
-                <AvatarFallback>{member.name[0].toUpperCase()}</AvatarFallback>
+                <AvatarImage src={member.avatar_url} alt={member.displayName} />
+                <AvatarFallback>{member.displayName[0].toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <p className="font-medium">
-                  {member.name}
+                  {member.displayName}
                   {member.invited && !member.user_id && (
                     <Badge variant="outline" className="ml-2 text-xs">Invited</Badge>
                   )}
@@ -94,4 +85,4 @@ export const TeamMemberList = ({ teamName, onAddMember }: TeamMemberListProps) =
       </CardContent>
     </Card>
   );
-}
+};

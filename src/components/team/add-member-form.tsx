@@ -25,7 +25,6 @@ export const AddMemberForm = ({ onSubmit, onCancel, isSubmitting = false }: AddM
   const form = useForm<AddMemberFormValues>({
     resolver: zodResolver(addMemberSchema),
     defaultValues: {
-      name: "",
       role: "",
       email: "",
     },
@@ -34,20 +33,6 @@ export const AddMemberForm = ({ onSubmit, onCancel, isSubmitting = false }: AddM
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-6">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="John Doe" {...field} disabled={isSubmitting} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
         <FormField
           control={form.control}
           name="email"

@@ -1,11 +1,47 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { TeamMember } from "../team-member-list";
-import { AddMemberFormValues } from "../schemas/member-form-schema";
+import { TeamMember } from "../types/team-member";
 
+/**
+ * Helper function to derive a display name from an email
+ */
+export const getDisplayNameFromEmail = (email: string): string => {
+  if (!email) return "Unknown User";
+  
+  // Extract the part before the @ symbol
+  const namePart = email.split('@')[0];
+  
+  // Convert to title case (capitalize first letter of each word)
+  return namePart
+    .split(/[._-]/)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+};
+
+/**
+ * Maps database record to TeamMember interface with derived displayName
+ */
+export const mapDbRecordToTeamMember = (record: any): TeamMember => {
+  return {
+    id: record.id,
+    email: record.email || '',
+    role: record.role || '',
+    team_name: record.team_name,
+    avatar_url: record.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(record.email || 'User')}`,
+    user_id: record.user_id,
+    invited: record.invited ?? true,
+    created_at: record.created_at,
+    updated_at: record.updated_at,
+    displayName: getDisplayNameFromEmail(record.email)
+  };
+};
+
+/**
+ * Add a new team member
+ */
 export const addTeamMember = async (
   teamName: string,
-  data: AddMemberFormValues,
+  data: { email: string; role: string },
   bypassAuth: boolean
 ): Promise<TeamMember> => {
   // First check if member already exists in this team
@@ -26,6 +62,8 @@ export const addTeamMember = async (
   }
   
   let memberId: string | undefined;
+  const displayName = getDisplayNameFromEmail(data.email);
+  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}`;
   
   if (bypassAuth) {
     const { data: newMemberId, error } = await supabase
@@ -33,8 +71,8 @@ export const addTeamMember = async (
         p_team_name: teamName,
         p_role: data.role,
         p_email: data.email,
-        p_name: data.name, // This will be stored in metadata
-        p_avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}`
+        p_name: displayName, // This will be stored in metadata
+        p_avatar_url: avatarUrl
       });
       
     if (error) {
@@ -55,7 +93,7 @@ export const addTeamMember = async (
         role: data.role,
         email: data.email,
         invited: true,
-        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}`,
+        avatar_url: avatarUrl,
       })
       .select()
       .single();
@@ -86,20 +124,12 @@ export const addTeamMember = async (
     throw new Error("Failed to fetch newly created member");
   }
   
-  // Create the TeamMember object using the database fields
-  // The name is derived from the form data or the email
-  return {
-    id: memberData.id,
-    name: data.name || memberData.email?.split('@')[0] || 'Unnamed',
-    role: memberData.role,
-    email: memberData.email || '',
-    avatar: memberData.avatar_url || undefined,
-    invited: memberData.invited || true,
-    user_id: memberData.user_id,
-  };
+  return mapDbRecordToTeamMember(memberData);
 };
 
-// Function to fetch team members
+/**
+ * Fetch team members for a specific team
+ */
 export const fetchTeamMembers = async (teamName: string): Promise<TeamMember[]> => {
   const { data, error } = await supabase
     .from('team_members')
@@ -111,19 +141,12 @@ export const fetchTeamMembers = async (teamName: string): Promise<TeamMember[]> 
     throw error;
   }
   
-  // Map database records to TeamMember objects
-  return data.map(member => ({
-    id: member.id,
-    name: member.email?.split('@')[0] || 'Unnamed', // Generate name from email
-    role: member.role,
-    email: member.email || '',
-    avatar: member.avatar_url || undefined,
-    invited: member.invited || false,
-    user_id: member.user_id,
-  }));
+  return data.map(mapDbRecordToTeamMember);
 };
 
-// Function to remove a team member
+/**
+ * Remove a team member
+ */
 export const removeTeamMember = async (memberId: string): Promise<void> => {
   const { error } = await supabase
     .from('team_members')

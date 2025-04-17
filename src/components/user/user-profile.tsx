@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useNavigate } from "react-router-dom"; 
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { getDisplayNameFromEmail } from "@/components/team/services/team-member-service";
 
 type Profile = {
   id: string;
@@ -24,21 +26,19 @@ type TeamInvite = {
   team_name: string;
   role: string;
   email: string;
-  name?: string;
 };
 
-type TeamMember = {
+type TeamMembership = {
   id: string;
   team_name: string;
   role: string;
-  name?: string;
 }
 
 export function UserProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [teamInvites, setTeamInvites] = useState<TeamInvite[]>([]);
-  const [teamMemberships, setTeamMemberships] = useState<TeamMember[]>([]);
+  const [teamMemberships, setTeamMemberships] = useState<TeamMembership[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInvitesLoading, setIsInvitesLoading] = useState(true);
   const [isMembershipsLoading, setIsMembershipsLoading] = useState(true);
@@ -109,7 +109,7 @@ export function UserProfile() {
           
         if (error) throw error;
         
-        setTeamMemberships(data as TeamMember[]);
+        setTeamMemberships(data as TeamMembership[]);
       } catch (error) {
         console.error("Error fetching team memberships:", error);
       } finally {
@@ -186,7 +186,7 @@ export function UserProfile() {
       
       // Add to team memberships
       if (data && data.length > 0) {
-        setTeamMemberships(prev => [...prev, data[0] as TeamMember]);
+        setTeamMemberships(prev => [...prev, data[0] as TeamMembership]);
       }
       
       toast({
@@ -343,7 +343,7 @@ export function UserProfile() {
             <Avatar className="h-24 w-24">
               <AvatarImage src={user.user_metadata?.avatar_url || profile?.avatar_url || undefined} alt={profile?.full_name || ""} />
               <AvatarFallback className="text-xl">
-                {(profile?.full_name || user.user_metadata?.full_name || user.email || "User")
+                {(profile?.full_name || user.user_metadata?.full_name || getDisplayNameFromEmail(user.email || "User"))
                   .split(" ")
                   .map(n => n[0])
                   .join("")

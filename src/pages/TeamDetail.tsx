@@ -6,12 +6,13 @@ import { useProjects } from "@/context/project-context";
 import { UsersRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
-import { TeamMemberList, TeamMember } from "@/components/team/team-member-list";
+import { TeamMemberList } from "@/components/team/team-member-list";
 import { TeamOverview } from "@/components/team/team-overview";
 import { TeamProjects } from "@/components/team/team-projects";
 import { ManageMembersDialog } from "@/components/team/manage-members-dialog";
 import { AddMemberSheet } from "@/components/team/add-member-sheet";
 import { fetchTeamMembers } from "@/components/team/services/team-member-service";
+import { TeamMember } from "@/components/team/types/team-member";
 
 export default function TeamDetail() {
   const { teamName } = useParams<{ teamName: string }>();

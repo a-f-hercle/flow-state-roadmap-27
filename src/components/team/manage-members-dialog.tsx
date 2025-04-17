@@ -12,7 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Loader2, Mail, UserPlus2, X } from "lucide-react";
-import { TeamMember } from "./team-member-list";
+import { TeamMember } from "./types/team-member";
 import { useToast } from "@/hooks/use-toast";
 import { removeTeamMember } from "./services/team-member-service";
 
@@ -89,12 +89,12 @@ export const ManageMembersDialog = ({
               <div key={member.id} className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={member.avatar} alt={member.name} />
-                    <AvatarFallback>{member.name[0].toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={member.avatar_url} alt={member.displayName} />
+                    <AvatarFallback>{member.displayName[0].toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-medium text-sm">
-                      {member.name}
+                      {member.displayName}
                       {member.invited && !member.user_id && (
                         <Badge variant="outline" className="ml-2 text-xs">Invited</Badge>
                       )}
