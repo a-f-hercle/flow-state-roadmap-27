@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
@@ -48,8 +47,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/auth-context";
 
-// Define the form schema
 const addMemberSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   role: z.string().min(2, { message: "Role must be at least 2 characters" }),
@@ -77,11 +76,10 @@ export default function TeamDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const { bypassAuth } = useAuth();
   
-  // Find team projects
   const teamProjects = projects.filter(project => project.team === teamName);
   
-  // Count roadmap projects
   const roadmapProjects = teamProjects.filter(p => p.displayOnRoadmap);
 
   const form = useForm<AddMemberFormValues>({
@@ -93,7 +91,6 @@ export default function TeamDetail() {
     },
   });
 
-  // Load team members from database
   useEffect(() => {
     async function loadTeamMembers() {
       if (!teamName) return;
@@ -107,7 +104,6 @@ export default function TeamDetail() {
           
         if (error) throw error;
         
-        // Transform database records to TeamMember format
         const formattedMembers: TeamMember[] = data.map(member => ({
           id: member.id,
           name: member.email?.split('@')[0] || 'Unnamed',
@@ -144,7 +140,6 @@ export default function TeamDetail() {
 
   const handleRemoveMember = async (memberId: string) => {
     try {
-      // Delete from database
       const { error } = await supabase
         .from('team_members')
         .delete()
@@ -152,7 +147,6 @@ export default function TeamDetail() {
         
       if (error) throw error;
       
-      // Update local state
       setTeamMembers(prev => prev.filter(member => member.id !== memberId));
       
       toast({
@@ -173,29 +167,59 @@ export default function TeamDetail() {
     if (!teamName) return;
     
     try {
-      // Insert new team member into database
-      const { data: newMember, error } = await supabase
-        .from('team_members')
-        .insert({
-          team_name: teamName,
-          role: data.role,
-          email: data.email,
-          invited: true,
-          // Create an avatar with the provided name
-          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}`,
-        })
-        .select()
-        .single();
-        
-      if (error) throw error;
+      console.log("Adding team member with data:", data);
+      console.log("Team name:", teamName);
       
-      // Update local state with the new member
+      let memberId: string;
+      
+      if (bypassAuth) {
+        const { data: newMember, error } = await supabase
+          .rpc('add_team_member_bypass', {
+            p_team_name: teamName,
+            p_role: data.role,
+            p_email: data.email,
+            p_name: data.name,
+            p_avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}`
+          });
+          
+        if (error) {
+          console.error("Error adding team member:", error);
+          throw error;
+        }
+        
+        memberId = newMember;
+      } else {
+        const { data: newMember, error } = await supabase
+          .from('team_members')
+          .insert({
+            team_name: teamName,
+            role: data.role,
+            email: data.email,
+            invited: true,
+            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}`,
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        memberId = newMember.id;
+      }
+      
+      const { data: memberData, error: fetchError } = await supabase
+        .from('team_members')
+        .select('*')
+        .eq('id', memberId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
       const newTeamMember: TeamMember = {
-        id: newMember.id,
+        id: memberData.id,
         name: data.name,
-        role: newMember.role,
-        email: newMember.email || '',
-        avatar: newMember.avatar_url || undefined,
+        role: memberData.role,
+        email: memberData.email || '',
+        avatar: memberData.avatar_url || undefined,
         invited: true,
       };
       
@@ -392,7 +416,6 @@ export default function TeamDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Member Sheet */}
       <Sheet open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
         <SheetContent>
           <SheetHeader>

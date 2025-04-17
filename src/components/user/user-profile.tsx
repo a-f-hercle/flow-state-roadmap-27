@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useNavigate } from "react-router-dom"; 
@@ -46,6 +45,7 @@ export function UserProfile() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [formData, setFormData] = useState<Partial<Profile>>({});
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchProfile() {
