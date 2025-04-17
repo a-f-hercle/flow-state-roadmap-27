@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useCallback } from "react";
 import { 
   Card, 
@@ -253,7 +252,7 @@ export function ProductRoadmap() {
                               statusStyle={statusStyles[projectStatus as keyof typeof statusStyles]}
                               leftPos={leftPos}
                               width={width}
-                              topPos={topPos}
+                              topPos={`-35px`} // Move to top instead of bottom
                               onMoveStart={handleMoveStart}
                               onProjectClick={handleProjectClick}
                             />
