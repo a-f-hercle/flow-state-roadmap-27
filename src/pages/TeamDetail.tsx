@@ -26,34 +26,98 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+// Define the form schema
+const addMemberSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  role: z.string().min(2, { message: "Role must be at least 2 characters" }),
+  avatar: z.string().optional(),
+});
+
+type AddMemberFormValues = z.infer<typeof addMemberSchema>;
 
 export default function TeamDetail() {
   const { teamName } = useParams<{ teamName: string }>();
   const { projects } = useProjects();
   const [isManageMembersOpen, setIsManageMembersOpen] = useState(false);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const { toast } = useToast();
+  const [teamMembers, setTeamMembers] = useState(
+    // Get team members from mockReviewers
+    mockReviewers.filter(member => 
+      // This is a simplified way to match team members - in a real app you'd have a more robust relationship
+      Math.random() > 0.5
+    ).slice(0, 3)
+  );
 
   // Find team projects
   const teamProjects = projects.filter(project => project.team === teamName);
   
-  // Get team members from mockReviewers
-  const teamMembers = mockReviewers.filter(member => 
-    // This is a simplified way to match team members - in a real app you'd have a more robust relationship
-    Math.random() > 0.5
-  ).slice(0, 3);
-
   // Count roadmap projects
   const roadmapProjects = teamProjects.filter(p => p.displayOnRoadmap);
+
+  const form = useForm<AddMemberFormValues>({
+    resolver: zodResolver(addMemberSchema),
+    defaultValues: {
+      name: "",
+      role: "",
+      avatar: "",
+    },
+  });
 
   const handleManageMembers = () => {
     setIsManageMembersOpen(true);
   };
 
   const handleAddMember = () => {
+    setIsAddMemberOpen(true);
+  };
+
+  const handleRemoveMember = (memberId: string) => {
+    setTeamMembers(prev => prev.filter(member => member.id !== memberId));
     toast({
-      title: "Feature not implemented",
-      description: "Adding team members is not implemented in this demo",
+      title: "Member removed",
+      description: "The team member has been removed successfully",
+    });
+  };
+
+  const onAddMemberSubmit = (data: AddMemberFormValues) => {
+    const newMember = {
+      id: `member-${Date.now()}`,
+      name: data.name,
+      role: data.role,
+      avatar: data.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}`,
+    };
+
+    setTeamMembers(prev => [...prev, newMember]);
+    setIsAddMemberOpen(false);
+    form.reset();
+    
+    toast({
+      title: "Member added",
+      description: `${data.name} has been added to the ${teamName} team`,
     });
   };
 
@@ -162,7 +226,7 @@ export default function TeamDetail() {
                     <p className="text-xs text-muted-foreground">{member.role}</p>
                   </div>
                 </div>
-                <Button size="icon" variant="ghost">
+                <Button size="icon" variant="ghost" onClick={() => handleRemoveMember(member.id)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -176,6 +240,71 @@ export default function TeamDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Member Sheet */}
+      <Sheet open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Add Team Member</SheetTitle>
+            <SheetDescription>
+              Add a new member to the {teamName} team.
+            </SheetDescription>
+          </SheetHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onAddMemberSubmit)} className="space-y-6 py-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter role" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="avatar"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Avatar URL (optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com/avatar.png" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <SheetFooter>
+                <Button type="button" variant="outline" onClick={() => setIsAddMemberOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Add Member</Button>
+              </SheetFooter>
+            </form>
+          </Form>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
