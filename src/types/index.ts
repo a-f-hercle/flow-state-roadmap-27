@@ -40,6 +40,12 @@ export type Project = {
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
+  // Roadmap specific fields
+  startDate?: Date;
+  endDate?: Date;
+  status?: 'planned' | 'in-progress' | 'completed' | 'blocked';
+  category?: TaskCategory;
+  displayOnRoadmap?: boolean;
 };
 
 export type TaskCategory = 'feature' | 'bugfix' | 'improvement' | 'refactor' | 'infrastructure' | 'documentation' | 'compliance' | 'security';

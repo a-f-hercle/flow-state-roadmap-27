@@ -15,6 +15,14 @@ export default function Teams() {
     acc[project.team] = (acc[project.team] || []).concat(project);
     return acc;
   }, {} as Record<string, typeof projects>);
+
+  // Count roadmap projects
+  const roadmapProjectsByTeam = projects
+    .filter(p => p.displayOnRoadmap)
+    .reduce((acc, project) => {
+      acc[project.team] = (acc[project.team] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
   
   // Create team structures from the image
   const teams = [
@@ -23,6 +31,7 @@ export default function Teams() {
       description: "Trading platform development and enhancements",
       members: [mockReviewers[0], mockReviewers[6]],
       projectCount: projectsByTeam["Tech Trading"]?.length || 0,
+      roadmapCount: roadmapProjectsByTeam["Tech Trading"] || 0,
       color: "bg-indigo-100"
     },
     {
@@ -30,6 +39,7 @@ export default function Teams() {
       description: "Banking solutions and custody services",
       members: [mockReviewers[4], mockReviewers[7]],
       projectCount: projectsByTeam["Tech Custody & Banking"]?.length || 0,
+      roadmapCount: roadmapProjectsByTeam["Tech Custody & Banking"] || 0,
       color: "bg-yellow-100"
     },
     {
@@ -37,6 +47,7 @@ export default function Teams() {
       description: "Portfolio Management Systems",
       members: [mockReviewers[3], mockReviewers[2]],
       projectCount: projectsByTeam["Tech PMS"]?.length || 0,
+      roadmapCount: roadmapProjectsByTeam["Tech PMS"] || 0,
       color: "bg-red-100"
     },
     {
@@ -44,6 +55,7 @@ export default function Teams() {
       description: "Trade execution systems and services",
       members: [mockReviewers[6], mockReviewers[1], mockReviewers[5]],
       projectCount: projectsByTeam["Tech Execution"]?.length || 0,
+      roadmapCount: roadmapProjectsByTeam["Tech Execution"] || 0,
       color: "bg-green-100"
     },
     {
@@ -51,6 +63,7 @@ export default function Teams() {
       description: "Core platform infrastructure and security",
       members: [mockReviewers[0], mockReviewers[6]],
       projectCount: projectsByTeam["Tech Infrastructure"]?.length || 0,
+      roadmapCount: roadmapProjectsByTeam["Tech Infrastructure"] || 0,
       color: "bg-orange-100"
     },
     {
@@ -58,6 +71,7 @@ export default function Teams() {
       description: "Business process optimization and tools",
       members: [mockReviewers[4], mockReviewers[5], mockReviewers[2]],
       projectCount: projectsByTeam["Business Operations"]?.length || 0,
+      roadmapCount: roadmapProjectsByTeam["Business Operations"] || 0,
       color: "bg-pink-100"
     }
   ];
@@ -83,9 +97,16 @@ export default function Teams() {
             <CardHeader className={team.color}>
               <div className="flex justify-between items-start">
                 <CardTitle>{team.name}</CardTitle>
-                <Badge variant="outline">
-                  {team.projectCount} Project{team.projectCount !== 1 ? 's' : ''}
-                </Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant="outline">
+                    {team.projectCount} Project{team.projectCount !== 1 ? 's' : ''}
+                  </Badge>
+                  {team.roadmapCount > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {team.roadmapCount} on roadmap
+                    </Badge>
+                  )}
+                </div>
               </div>
               <CardDescription>{team.description}</CardDescription>
             </CardHeader>
