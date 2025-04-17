@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchTeamMembers } from "./services/team-member-service";
 
 export type TeamMember = {
   id: string;
-  name: string;
+  name: string; // This is derived from email, not from the database
   role: string;
   avatar?: string;
   email: string;
@@ -34,25 +34,8 @@ export const TeamMemberList = ({ teamName, onAddMember }: TeamMemberListProps) =
       
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from('team_members')
-          .select('*')
-          .eq('team_name', teamName);
-          
-        if (error) throw error;
-        
-        const formattedMembers: TeamMember[] = data.map(member => ({
-          id: member.id,
-          // Generate name from email if not provided explicitly
-          name: member.email?.split('@')[0] || 'Unnamed',
-          role: member.role,
-          email: member.email || '',
-          avatar: member.avatar_url || undefined,
-          user_id: member.user_id || undefined,
-          invited: member.invited || false,
-        }));
-        
-        setTeamMembers(formattedMembers);
+        const members = await fetchTeamMembers(teamName);
+        setTeamMembers(members);
       } catch (error) {
         console.error("Error loading team members:", error);
         toast({

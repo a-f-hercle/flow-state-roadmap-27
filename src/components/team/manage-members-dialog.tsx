@@ -14,7 +14,7 @@ import {
 import { Loader2, Mail, UserPlus2, X } from "lucide-react";
 import { TeamMember } from "./team-member-list";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { removeTeamMember } from "./services/team-member-service";
 
 interface ManageMembersDialogProps {
   isOpen: boolean;
@@ -42,12 +42,7 @@ export const ManageMembersDialog = ({
     try {
       setRemovingMemberId(memberId);
       
-      const { error } = await supabase
-        .from('team_members')
-        .delete()
-        .eq('id', memberId);
-        
-      if (error) throw error;
+      await removeTeamMember(memberId);
       
       setTeamMembers(prev => prev.filter(member => member.id !== memberId));
       

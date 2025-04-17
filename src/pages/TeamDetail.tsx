@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { useProjects } from "@/context/project-context";
 import { UsersRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/auth-context";
 import { TeamMemberList, TeamMember } from "@/components/team/team-member-list";
 import { TeamOverview } from "@/components/team/team-overview";
 import { TeamProjects } from "@/components/team/team-projects";
 import { ManageMembersDialog } from "@/components/team/manage-members-dialog";
 import { AddMemberSheet } from "@/components/team/add-member-sheet";
+import { fetchTeamMembers } from "@/components/team/services/team-member-service";
 
 export default function TeamDetail() {
   const { teamName } = useParams<{ teamName: string }>();
@@ -32,24 +32,8 @@ export default function TeamDetail() {
       
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from('team_members')
-          .select('*')
-          .eq('team_name', teamName);
-          
-        if (error) throw error;
-        
-        const formattedMembers: TeamMember[] = data.map(member => ({
-          id: member.id,
-          name: member.email?.split('@')[0] || 'Unnamed',
-          role: member.role,
-          email: member.email || '',
-          avatar: member.avatar_url || undefined,
-          user_id: member.user_id || undefined,
-          invited: member.invited || false,
-        }));
-        
-        setTeamMembers(formattedMembers);
+        const members = await fetchTeamMembers(teamName);
+        setTeamMembers(members);
       } catch (error) {
         console.error("Error loading team members:", error);
         toast({
