@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Project } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -152,10 +151,10 @@ export function RoadmapItem({
     const newLeft = e.clientX - parentRect.left - dragStartPos.x;
     const newTop = e.clientY - parentRect.top - dragStartPos.y;
     
-    // Snap to a timeline grid (monthly)
-    const monthWidth = parentRect.width / 12;
-    const snapToMonth = Math.round(newLeft / monthWidth) * monthWidth;
-    const leftPercent = (snapToMonth / parentRect.width) * 100 + '%';
+    // Snap to a timeline grid (weekly instead of monthly)
+    const weekWidth = parentRect.width / 52; // 52 weeks in a year
+    const snapToWeek = Math.round(newLeft / weekWidth) * weekWidth;
+    const leftPercent = (snapToWeek / parentRect.width) * 100 + '%';
     
     // Keep the item within the timeline and respect row boundaries
     // Round to nearest multiple of 45px for row height
@@ -169,8 +168,12 @@ export function RoadmapItem({
     });
     
     // Calculate new dates based on position
-    const monthIndex = Math.floor((snapToMonth / parentRect.width) * 12);
-    const newStartDate = new Date(2025, monthIndex, 1);
+    const startDate = new Date(2025, 0, 1); // Jan 1, 2025
+    const weekIndex = Math.floor((snapToWeek / parentRect.width) * 52);
+    
+    // Calculate the new start date based on the week index
+    const msInWeek = 7 * 24 * 60 * 60 * 1000;
+    const newStartDate = new Date(startDate.getTime() + (weekIndex * msInWeek));
     
     // Maintain the same duration
     const duration = initialDateRef.current.endDate!.getTime() - initialDateRef.current.startDate!.getTime();
@@ -190,18 +193,18 @@ export function RoadmapItem({
     // Calculate the new width based on mouse position
     const newWidth = Math.max(50, e.clientX - itemRect.left); // Minimum 50px width
     
-    // Snap width to month grid
-    const monthWidth = parentRect.width / 12;
-    const months = Math.max(1, Math.round(newWidth / monthWidth));
-    const snappedWidth = months * monthWidth;
+    // Snap width to week grid (instead of month grid)
+    const weekWidth = parentRect.width / 52; // 52 weeks in a year
+    const weeks = Math.max(1, Math.round(newWidth / weekWidth));
+    const snappedWidth = weeks * weekWidth;
     const snappedWidthPercent = (snappedWidth / parentRect.width) * 100;
     
     // Update width state
-    setItemWidth(`${Math.max(4, snappedWidthPercent)}%`); // Minimum 4% width
+    setItemWidth(`${Math.max(2, snappedWidthPercent)}%`); // Minimum 2% width
     
-    // Calculate the new end date based on width
-    const newEndDate = new Date(project.startDate!);
-    newEndDate.setMonth(newEndDate.getMonth() + months);
+    // Calculate the new end date based on weeks
+    const msInWeek = 7 * 24 * 60 * 60 * 1000;
+    const newEndDate = new Date(project.startDate!.getTime() + (weeks * msInWeek));
     
     // Update internal state (will be saved on mouse up)
     project.endDate = newEndDate;

@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useCallback } from "react";
 import { 
   Card, 
@@ -133,13 +134,19 @@ export function ProductRoadmap() {
         }
       }
       
-      const startMonth = project.startDate!.getMonth();
-      const startDay = project.startDate!.getDate();
-      const leftPos = `${(startMonth * 100 / 12) + (startDay / 30) * (100 / 12)}%`;
+      // Calculate position based on weeks instead of months
+      const startDate = new Date(2025, 0, 1); // Jan 1, 2025
+      const projectStartTime = project.startDate!.getTime();
+      const projectEndTime = project.endDate!.getTime();
       
-      const durationInDays = (endTime - startTime) / (1000 * 60 * 60 * 24);
-      const durationInMonths = durationInDays / 30;
-      const width = `${Math.max(durationInMonths * (100 / 12), 4)}%`;
+      // Calculate weeks from Jan 1, 2025
+      const msInWeek = 7 * 24 * 60 * 60 * 1000;
+      const weeksFromStart = (projectStartTime - startDate.getTime()) / msInWeek;
+      const projectDurationInWeeks = (projectEndTime - projectStartTime) / msInWeek;
+      
+      // 52 weeks in a year, position based on percentage
+      const leftPos = `${(weeksFromStart * 100) / 52}%`;
+      const width = `${Math.max((projectDurationInWeeks * 100) / 52, 2)}%`;
       
       rows.push({
         project,
@@ -198,10 +205,11 @@ export function ProductRoadmap() {
           <CardHeader className="pb-0">
             <CardTitle>2025 Roadmap</CardTitle>
           </CardHeader>
-          <CardContent onClick={handleTimelineClick}>
+          <CardContent onClick={handleTimelineClick} className="relative">
             <div className="overflow-x-auto">
               <div className="min-w-[1200px]">
-                <div className="grid grid-cols-12 gap-0 border-b">
+                {/* Month labels at the top */}
+                <div className="grid grid-cols-12 gap-0 border-b ml-40">
                   {Array.from({ length: 12 }).map((_, index) => {
                     const date = new Date(2025, index, 1);
                     return (
@@ -212,36 +220,55 @@ export function ProductRoadmap() {
                   })}
                 </div>
                 
-                {filteredTeams.map(team => (
-                  <div key={team} className="border-b last:border-b-0">
-                    <div className="grid grid-cols-12 gap-0 relative">
-                      <div className="absolute left-0 top-0 bottom-0 bg-white dark:bg-gray-950 z-10 p-4 flex items-center font-medium border-r">
-                        <div className="w-32">{team}</div>
+                {/* Teams and timeline content with teams on the left */}
+                <div className="relative">
+                  {filteredTeams.map((team, teamIndex) => (
+                    <div key={team} className={`flex border-b ${teamIndex === filteredTeams.length - 1 ? 'border-b-0' : ''}`}>
+                      {/* Team name on the left */}
+                      <div className="sticky left-0 w-40 bg-white dark:bg-gray-950 z-10 p-4 flex items-center font-medium border-r">
+                        {team}
                       </div>
                       
-                      <div className="col-span-12 min-h-60 pt-2 pb-8 pl-36 relative roadmap-timeline">
-                        {getProjectPositionAndRows(team).map(({ project, row, leftPos, width }) => {
-                          const topPos = `${row * 45 + 8}px`;
-                          const projectStatus = project.status || 'planned';
-                          
-                          return (
-                            <RoadmapItem
-                              key={project.id}
-                              project={project}
-                              teamColor={teamColors[project.team as keyof typeof teamColors]}
-                              statusStyle={statusStyles[projectStatus as keyof typeof statusStyles]}
-                              leftPos={leftPos}
-                              width={width}
-                              topPos={topPos}
-                              onMoveStart={handleMoveStart}
-                              onProjectClick={handleProjectClick}
-                            />
-                          );
-                        })}
+                      {/* Timeline area with grid for months */}
+                      <div className="flex-1 min-h-60 relative">
+                        <div className="grid grid-cols-12 h-full">
+                          {Array.from({ length: 12 }).map((_, i) => (
+                            <div key={i} className="border-r last:border-r-0 h-full">
+                              {/* Subtle week indicators */}
+                              <div className="flex h-full">
+                                {Array.from({ length: 4 }).map((_, j) => (
+                                  <div key={j} className="flex-1 h-full border-r last:border-r-0 border-dashed border-gray-100 dark:border-gray-800" />
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Roadmap items positioned absolutely */}
+                        <div className="absolute inset-0 pt-2 pb-8">
+                          {getProjectPositionAndRows(team).map(({ project, row, leftPos, width }) => {
+                            const topPos = `${row * 45 + 8}px`;
+                            const projectStatus = project.status || 'planned';
+                            
+                            return (
+                              <RoadmapItem
+                                key={project.id}
+                                project={project}
+                                teamColor={teamColors[project.team as keyof typeof teamColors]}
+                                statusStyle={statusStyles[projectStatus as keyof typeof statusStyles]}
+                                leftPos={leftPos}
+                                width={width}
+                                topPos={topPos}
+                                onMoveStart={handleMoveStart}
+                                onProjectClick={handleProjectClick}
+                              />
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </CardContent>
