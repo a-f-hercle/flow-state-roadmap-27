@@ -74,20 +74,18 @@ export function ProductRoadmap() {
     : teams;
 
   const handleProjectClick = useCallback((projectId: string) => {
-    if (!isDragging) {
-      navigate(`/projects/${projectId}`);
-    }
-  }, [navigate, isDragging]);
+    navigate(`/projects/${projectId}`);
+  }, [navigate]);
 
   const handleMoveStart = useCallback(() => {
     setIsDragging(true);
-    toast.info("Right-click drag to move the project on the timeline", {
+    toast.info("Drag to move, use resize handle to change duration", {
       id: "move-timeline-item",
       duration: 2000
     });
   }, []);
 
-  const handleTimelineClick = useCallback((e: React.MouseEvent) => {
+  const handleTimelineClick = useCallback(() => {
     if (isDragging) {
       setIsDragging(false);
     }
@@ -163,7 +161,7 @@ export function ProductRoadmap() {
             Planning and tracking of projects throughout 2025
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            <em>Tip: Right-click and drag to move items on the timeline</em>
+            <em>Tip: Click to view details, right-click and drag to move, or use handle to resize</em>
           </p>
         </div>
         <Button 

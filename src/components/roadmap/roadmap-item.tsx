@@ -29,13 +29,15 @@ export function RoadmapItem({
   const { updateProject } = useProjects();
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [position, setPosition] = useState({ left: leftPos, top: topPos });
   const [itemWidth, setItemWidth] = useState(width);
   const itemRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const initialDateRef = useRef({ startDate: project.startDate, endDate: project.endDate });
-  const initialWidthRef = useRef(0);
+  const mouseDownTimeRef = useRef<number>(0);
+  const isDraggingRef = useRef<boolean>(false);
+  const isResizingRef = useRef<boolean>(false);
 
   // Format date in shortened format
   const formatShortDate = (date: Date) => {
@@ -69,38 +71,54 @@ export function RoadmapItem({
     // Don't activate dragging when clicking on the resize handle
     if ((e.target as HTMLElement).closest('.resize-handle')) return;
     
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-    onMoveStart();
+    // Store when the mouse was pressed down
+    mouseDownTimeRef.current = Date.now();
     
-    // Calculate offset from mouse position to element corner
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
-    
-    // Store initial dates for reference
-    initialDateRef.current = {
-      startDate: new Date(project.startDate!),
-      endDate: new Date(project.endDate!)
-    };
-    
-    // Add event listeners
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    // Only initiate drag with right mouse button or when Ctrl/Cmd is pressed
+    if (e.button === 2 || e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+      isDraggingRef.current = true;
+      onMoveStart();
+      
+      // Calculate position of mouse relative to parent element
+      if (timelineRef.current && itemRef.current) {
+        const parentRect = timelineRef.current.getBoundingClientRect();
+        const itemRect = itemRef.current.getBoundingClientRect();
+        
+        setDragStartPos({
+          x: e.clientX - (itemRect.left - parentRect.left),
+          y: e.clientY - (itemRect.top - parentRect.top)
+        });
+      }
+      
+      // Store initial dates for reference
+      initialDateRef.current = {
+        startDate: new Date(project.startDate!),
+        endDate: new Date(project.endDate!)
+      };
+      
+      // Add event listeners
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
   };
 
   const handleResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsResizing(true);
+    isResizingRef.current = true;
     onMoveStart();
+    
+    // Store mouse down time
+    mouseDownTimeRef.current = Date.now();
     
     // Store initial width and position
     if (itemRef.current) {
-      initialWidthRef.current = itemRef.current.getBoundingClientRect().width;
+      const rect = itemRef.current.getBoundingClientRect();
+      setDragStartPos({ x: e.clientX, y: e.clientY });
     }
     
     // Store initial dates for reference
@@ -115,22 +133,24 @@ export function RoadmapItem({
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging || !timelineRef.current) return;
+    if (!isDraggingRef.current || !timelineRef.current) return;
     
     const parentRect = timelineRef.current.getBoundingClientRect();
     
     // Calculate new position relative to parent
-    const newLeft = e.clientX - parentRect.left - dragOffset.x;
-    const newTop = e.clientY - parentRect.top - dragOffset.y;
+    const newLeft = e.clientX - parentRect.left - dragStartPos.x;
+    const newTop = e.clientY - parentRect.top - dragStartPos.y;
     
     // Snap to a timeline grid (monthly)
     const monthWidth = parentRect.width / 12;
     const snapToMonth = Math.round(newLeft / monthWidth) * monthWidth;
     const leftPercent = (snapToMonth / parentRect.width) * 100 + '%';
     
-    // Keep the item within the timeline
-    const boundedTop = Math.max(0, Math.min(newTop, parentRect.height - 40));
-    const topPx = boundedTop + 'px';
+    // Keep the item within the timeline and respect row boundaries
+    // Round to nearest multiple of 45px for row height
+    const rowHeight = 45;
+    const snapToRow = Math.round(newTop / rowHeight) * rowHeight + 8;
+    const topPx = Math.max(8, snapToRow) + 'px';
     
     setPosition({
       left: leftPercent,
@@ -151,7 +171,7 @@ export function RoadmapItem({
   };
 
   const handleResizeMove = (e: MouseEvent) => {
-    if (!isResizing || !timelineRef.current || !itemRef.current) return;
+    if (!isResizingRef.current || !timelineRef.current || !itemRef.current) return;
     
     const parentRect = timelineRef.current.getBoundingClientRect();
     const itemRect = itemRef.current.getBoundingClientRect();
@@ -177,7 +197,8 @@ export function RoadmapItem({
   };
 
   const handleMouseUp = () => {
-    if (isDragging) {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
       setIsDragging(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -188,7 +209,8 @@ export function RoadmapItem({
   };
 
   const handleResizeEnd = () => {
-    if (isResizing) {
+    if (isResizingRef.current) {
+      isResizingRef.current = false;
       setIsResizing(false);
       document.removeEventListener('mousemove', handleResizeMove);
       document.removeEventListener('mouseup', handleResizeEnd);
@@ -198,8 +220,20 @@ export function RoadmapItem({
     }
   };
 
-  const handleClick = () => {
-    if (!isDragging && !isResizing) {
+  const handleClick = (e: React.MouseEvent) => {
+    // Check if the click started as a drag/resize operation
+    if (isDraggingRef.current || isResizingRef.current) {
+      return;
+    }
+    
+    // Check if it's not a drag attempt (clicked and released quickly)
+    const clickDuration = Date.now() - mouseDownTimeRef.current;
+    if (clickDuration < 200) {
+      // If click is on resize handle, don't navigate
+      if ((e.target as HTMLElement).closest('.resize-handle')) {
+        return;
+      }
+      
       onProjectClick(project.id);
     }
   };
@@ -207,7 +241,7 @@ export function RoadmapItem({
   return (
     <div
       ref={itemRef}
-      className={`absolute ${teamColor} ${statusStyle} border rounded-md p-2 shadow-sm cursor-move hover:shadow-md transition-shadow ${isDragging || isResizing ? 'opacity-75 z-50' : ''}`}
+      className={`absolute ${teamColor} ${statusStyle} border rounded-md p-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${isDragging || isResizing ? 'opacity-75 z-50' : ''}`}
       style={{ 
         left: isDragging ? position.left : leftPos, 
         width: isResizing ? itemWidth : width,
@@ -236,9 +270,9 @@ export function RoadmapItem({
         </Badge>
       </div>
       
-      {/* Resize handle - made more visible and easier to grab */}
+      {/* Resize handle - made more visible */}
       <div 
-        className="resize-handle absolute right-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-ew-resize hover:bg-black/10 dark:hover:bg-white/10"
+        className="resize-handle absolute right-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-ew-resize hover:bg-black/10 dark:hover:bg-white/10 rounded-r-md"
         onMouseDown={handleResizeStart}
       >
         <GripHorizontal className="h-4 w-4 text-muted-foreground" />
