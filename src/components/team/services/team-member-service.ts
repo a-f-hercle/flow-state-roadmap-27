@@ -1,4 +1,3 @@
-
 import { TeamMember } from "../types/team-member";
 
 /**
@@ -45,13 +44,57 @@ export const getDisplayNameFromEmail = (email: string): string => {
     .join(" ");
 };
 
+// Initial team members data
+const initialTeamMembers: TeamMember[] = [
+  {
+    id: "marco-1",
+    name: "Marco Levarato",
+    role: "Head of Tech Trading & Infrastructure",
+    team_name: "Tech Trading",
+    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Marco Levarato")}`
+  },
+  {
+    id: "marco-2",
+    name: "Marco Levarato",
+    role: "Head of Tech Trading & Infrastructure",
+    team_name: "Tech Infrastructure",
+    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Marco Levarato")}`
+  },
+  {
+    id: "massimo-1",
+    name: "Massimo Mannoni",
+    role: "Head of Banking & Trading Systems",
+    team_name: "Tech Custody & Banking",
+    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Massimo Mannoni")}`
+  },
+  {
+    id: "massimo-2",
+    name: "Massimo Mannoni",
+    role: "Head of Banking & Trading Systems",
+    team_name: "Tech PMS",
+    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Massimo Mannoni")}`
+  },
+  {
+    id: "massimo-3",
+    name: "Massimo Mannoni",
+    role: "Head of Banking & Trading Systems",
+    team_name: "Tech Execution",
+    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Massimo Mannoni")}`
+  },
+  {
+    id: "andrea-1",
+    name: "Andrea Petrolati",
+    role: "Head of Business Operations",
+    team_name: "Business Operations",
+    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Andrea Petrolati")}`
+  }
+];
+
 /**
- * Mock implementation - no longer needs database access
+ * Mock implementation - returns pre-loaded team members for the specified team
  */
 export const fetchTeamMembers = async (teamName: string): Promise<TeamMember[]> => {
-  // This would typically return stored team members
-  // For now, it returns an empty array since we're starting fresh
-  return [];
+  return initialTeamMembers.filter(member => member.team_name === teamName);
 };
 
 /**
