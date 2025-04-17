@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Project } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -160,24 +159,18 @@ export function RoadmapItem({
     // Calculate the new width based on mouse position
     const newWidth = Math.max(50, e.clientX - itemRect.left); // Minimum 50px width
     
-    // Calculate the width percentage relative to the parent
-    const widthPercent = (newWidth / parentRect.width) * 100;
-    
     // Snap width to month grid
     const monthWidth = parentRect.width / 12;
-    const months = Math.round(newWidth / monthWidth);
-    const snappedWidthPercent = (months * monthWidth / parentRect.width) * 100;
+    const months = Math.max(1, Math.round(newWidth / monthWidth));
+    const snappedWidth = months * monthWidth;
+    const snappedWidthPercent = (snappedWidth / parentRect.width) * 100;
     
     // Update width state
     setItemWidth(`${Math.max(4, snappedWidthPercent)}%`); // Minimum 4% width
     
     // Calculate the new end date based on width
-    const startTimestamp = project.startDate!.getTime();
-    const monthsFromStart = months;
-    
-    // Create a new date that is 'monthsFromStart' months ahead of the start date
     const newEndDate = new Date(project.startDate!);
-    newEndDate.setMonth(newEndDate.getMonth() + monthsFromStart);
+    newEndDate.setMonth(newEndDate.getMonth() + months);
     
     // Update internal state (will be saved on mouse up)
     project.endDate = newEndDate;
@@ -243,12 +236,12 @@ export function RoadmapItem({
         </Badge>
       </div>
       
-      {/* Resize handle */}
+      {/* Resize handle - made more visible and easier to grab */}
       <div 
-        className="resize-handle absolute right-0 top-0 bottom-0 w-4 flex items-center justify-center cursor-ew-resize"
+        className="resize-handle absolute right-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-ew-resize hover:bg-black/10 dark:hover:bg-white/10"
         onMouseDown={handleResizeStart}
       >
-        <GripHorizontal className="h-4 w-4 text-muted-foreground opacity-50 hover:opacity-100" />
+        <GripHorizontal className="h-4 w-4 text-muted-foreground" />
       </div>
     </div>
   );
