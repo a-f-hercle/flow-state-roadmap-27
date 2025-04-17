@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjects } from "@/context/project-context";
@@ -52,7 +51,6 @@ export default function ProjectNew() {
             }))
           }
         },
-        prototype: { status: 'not-started' },
         build: { status: 'not-started' },
         release: { status: 'not-started' },
         results: { status: 'not-started' }

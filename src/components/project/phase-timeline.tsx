@@ -1,4 +1,3 @@
-
 import { ProjectPhase, Project } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -10,11 +9,10 @@ interface PhaseTimelineProps {
 }
 
 export function PhaseTimeline({ project }: PhaseTimelineProps) {
-  const phases: ProjectPhase[] = ["proposal", "prototype", "build", "release", "results"];
+  const phases: ProjectPhase[] = ["proposal", "build", "release", "results"];
   
   const phaseLabels: Record<ProjectPhase, string> = {
     proposal: "Proposal",
-    prototype: "Prototype",
     build: "Build",
     release: "Release",
     results: "Results",
@@ -22,7 +20,6 @@ export function PhaseTimeline({ project }: PhaseTimelineProps) {
 
   const phaseColors: Record<ProjectPhase, string> = {
     proposal: "bg-[hsl(var(--phase-proposal))]",
-    prototype: "bg-[hsl(var(--phase-prototype))]",
     build: "bg-[hsl(var(--phase-build))]",
     release: "bg-[hsl(var(--phase-release))]",
     results: "bg-[hsl(var(--phase-results))]",

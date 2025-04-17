@@ -10,7 +10,6 @@ interface PhaseBadgeProps {
 
 const phaseColors: Record<ProjectPhase, string> = {
   proposal: "bg-[hsl(var(--phase-proposal))] text-white",
-  prototype: "bg-[hsl(var(--phase-prototype))] text-white",
   build: "bg-[hsl(var(--phase-build))] text-white",
   release: "bg-[hsl(var(--phase-release))] text-white",
   results: "bg-[hsl(var(--phase-results))] text-white",
@@ -18,7 +17,6 @@ const phaseColors: Record<ProjectPhase, string> = {
 
 const phaseLabels: Record<ProjectPhase, string> = {
   proposal: "Proposal",
-  prototype: "Prototype",
   build: "Build",
   release: "Release",
   results: "Results",

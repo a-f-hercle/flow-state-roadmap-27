@@ -1,4 +1,3 @@
-
 import { useProjects } from "@/context/project-context";
 import { ProjectCard } from "@/components/project/project-card";
 import { useState } from "react";
@@ -22,11 +21,10 @@ export function ProjectList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPhases, setSelectedPhases] = useState<ProjectPhase[]>([]);
 
-  const phases: ProjectPhase[] = ['proposal', 'prototype', 'build', 'release', 'results'];
+  const phases: ProjectPhase[] = ['proposal', 'build', 'release', 'results'];
   
   const phaseLabels: Record<ProjectPhase, string> = {
     proposal: "Proposal",
-    prototype: "Prototype",
     build: "Build",
     release: "Release",
     results: "Results",

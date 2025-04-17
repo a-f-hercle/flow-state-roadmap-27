@@ -1,4 +1,3 @@
-
 import { useProjects } from "@/context/project-context";
 import { PhaseBadge } from "@/components/ui/phase-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +29,7 @@ export default function Dashboard() {
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 5);
   
-  const phases: ProjectPhase[] = ['proposal', 'prototype', 'build', 'release', 'results'];
+  const phases: ProjectPhase[] = ['proposal', 'build', 'release', 'results'];
   
   return (
     <div className="space-y-6">

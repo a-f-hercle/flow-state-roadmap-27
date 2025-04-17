@@ -90,22 +90,6 @@ export const mockProjects: Project[] = [
           ]
         }
       },
-      'prototype': {
-        startDate: twoWeeksAgo,
-        endDate: lastWeek,
-        status: 'completed',
-        notes: 'Prototype tested well with user group.',
-        review: {
-          id: '102',
-          type: 'OK2',
-          reviewers: [
-            { id: '5', status: 'approved', timestamp: lastWeek },
-            { id: '6', status: 'approved', timestamp: lastWeek },
-            { id: '7', status: 'approved', timestamp: lastWeek },
-            { id: '8', status: 'approved', timestamp: lastWeek }
-          ]
-        }
-      },
       'build': {
         startDate: lastWeek,
         endDate: nextWeek,
@@ -129,7 +113,7 @@ export const mockProjects: Project[] = [
     description: 'An internal tool to track inventory across all warehouse locations.',
     team: 'Operations',
     owner: 'Riley Brown',
-    currentPhase: 'prototype',
+    currentPhase: 'proposal',
     phases: {
       'proposal': {
         startDate: twoWeeksAgo,
@@ -147,13 +131,10 @@ export const mockProjects: Project[] = [
           ]
         }
       },
-      'prototype': {
+      'build': {
         startDate: lastWeek,
         status: 'in-progress',
-        notes: 'First round of prototypes being tested with warehouse staff.'
-      },
-      'build': {
-        status: 'not-started'
+        notes: 'Development has started with initial architecture planning.'
       },
       'release': {
         status: 'not-started'
@@ -187,22 +168,6 @@ export const mockProjects: Project[] = [
             { id: '2', status: 'approved', timestamp: threeWeeksAgo },
             { id: '3', status: 'approved', timestamp: threeWeeksAgo },
             { id: '4', status: 'approved', timestamp: threeWeeksAgo }
-          ]
-        }
-      },
-      'prototype': {
-        startDate: threeWeeksAgo,
-        endDate: twoWeeksAgo,
-        status: 'completed',
-        notes: 'Prototype tested with excellent results.',
-        review: {
-          id: '302',
-          type: 'OK2',
-          reviewers: [
-            { id: '5', status: 'approved', timestamp: twoWeeksAgo },
-            { id: '6', status: 'approved', timestamp: twoWeeksAgo },
-            { id: '7', status: 'approved', timestamp: twoWeeksAgo },
-            { id: '8', status: 'approved', timestamp: twoWeeksAgo }
           ]
         }
       },
@@ -251,9 +216,6 @@ export const mockProjects: Project[] = [
           ]
         }
       },
-      'prototype': {
-        status: 'not-started'
-      },
       'build': {
         status: 'not-started'
       },
@@ -289,22 +251,6 @@ export const mockProjects: Project[] = [
             { id: '2', status: 'approved', timestamp: threeWeeksAgo },
             { id: '3', status: 'approved', timestamp: threeWeeksAgo },
             { id: '4', status: 'approved', timestamp: threeWeeksAgo }
-          ]
-        }
-      },
-      'prototype': {
-        startDate: threeWeeksAgo,
-        endDate: twoWeeksAgo,
-        status: 'completed',
-        notes: 'Prototype approved after second review.',
-        review: {
-          id: '502',
-          type: 'OK2',
-          reviewers: [
-            { id: '5', status: 'approved', timestamp: twoWeeksAgo },
-            { id: '6', status: 'approved', timestamp: twoWeeksAgo },
-            { id: '7', status: 'approved', timestamp: twoWeeksAgo },
-            { id: '8', status: 'approved', timestamp: twoWeeksAgo }
           ]
         }
       },
