@@ -5,13 +5,11 @@ import { Button } from "@/components/ui/button";
 import { useProjects } from "@/context/project-context";
 import { UsersRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/context/auth-context";
 import { TeamMemberList } from "@/components/team/team-member-list";
 import { TeamOverview } from "@/components/team/team-overview";
 import { TeamProjects } from "@/components/team/team-projects";
 import { ManageMembersDialog } from "@/components/team/manage-members-dialog";
 import { AddMemberSheet } from "@/components/team/add-member-sheet";
-import { fetchTeamMembers } from "@/components/team/services/team-member-service";
 import { TeamMember } from "@/components/team/types/team-member";
 
 export default function TeamDetail() {
@@ -20,35 +18,12 @@ export default function TeamDetail() {
   const { projects } = useProjects();
   const [isManageMembersOpen, setIsManageMembersOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Simplified - no longer loading from DB
   const { toast } = useToast();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   
   const teamProjects = projects.filter(project => project.team === teamName);
   const roadmapProjects = teamProjects.filter(p => p.displayOnRoadmap);
-
-  useEffect(() => {
-    async function loadTeamMembers() {
-      if (!teamName) return;
-      
-      try {
-        setIsLoading(true);
-        const members = await fetchTeamMembers(teamName);
-        setTeamMembers(members);
-      } catch (error) {
-        console.error("Error loading team members:", error);
-        toast({
-          title: "Failed to load team members",
-          description: "Please try again later",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    loadTeamMembers();
-  }, [teamName, toast]);
 
   const handleManageMembers = () => {
     setIsManageMembersOpen(true);
@@ -85,6 +60,7 @@ export default function TeamDetail() {
         <TeamMemberList 
           teamName={teamName}
           onAddMember={handleAddMember}
+          teamMembers={teamMembers}
         />
 
         <div className="lg:col-span-2 space-y-6">

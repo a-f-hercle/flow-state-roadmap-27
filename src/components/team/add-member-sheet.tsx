@@ -7,8 +7,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { toast as sonnerToast } from "@/components/ui/sonner";
-import { AlertTriangle, CheckCircle } from "lucide-react";
-import { useAuth } from "@/context/auth-context";
+import { CheckCircle } from "lucide-react";
 import { TeamMember } from "./types/team-member";
 import { AddMemberForm } from "./add-member-form";
 import { AddMemberFormValues } from "./schemas/member-form-schema";
@@ -28,7 +27,6 @@ export const AddMemberSheet = ({
   teamName,
   setTeamMembers,
 }: AddMemberSheetProps) => {
-  const { bypassAuth } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onAddMemberSubmit = async (data: AddMemberFormValues) => {
@@ -37,33 +35,17 @@ export const AddMemberSheet = ({
     setIsSubmitting(true);
     
     try {
-      // Ensure data is complete before passing to addTeamMember
-      const memberData = {
-        email: data.email,
-        role: data.role
-      };
-      
-      const newTeamMember = await addTeamMember(teamName, memberData, bypassAuth);
+      const newTeamMember = await addTeamMember(teamName, data);
       
       setTeamMembers(prev => [...prev, newTeamMember]);
       onOpenChange(false);
       
       sonnerToast("Member added successfully", {
-        description: `${data.email} has been added to the ${teamName} team`,
+        description: `${data.name} has been added to the ${teamName} team`,
         icon: <CheckCircle className="h-5 w-5 text-green-500" />,
       });
     } catch (error) {
       console.error("Error adding team member:", error);
-      
-      // Display a more user-friendly error message
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : "An unexpected error occurred. Please try again.";
-        
-      sonnerToast("Failed to add member", {
-        description: errorMessage,
-        icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
-      });
     } finally {
       setIsSubmitting(false);
     }
@@ -75,7 +57,7 @@ export const AddMemberSheet = ({
         <SheetHeader>
           <SheetTitle>Add Team Member</SheetTitle>
           <SheetDescription>
-            Add a new member to the {teamName} team by email address.
+            Add a new member to the {teamName} team.
           </SheetDescription>
         </SheetHeader>
         

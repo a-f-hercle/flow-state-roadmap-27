@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,10 +10,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, Mail, UserPlus2, X } from "lucide-react";
+import { Loader2, UserPlus2, X } from "lucide-react";
 import { TeamMember } from "./types/team-member";
 import { useToast } from "@/hooks/use-toast";
-import { removeTeamMember } from "./services/team-member-service";
 
 interface ManageMembersDialogProps {
   isOpen: boolean;
@@ -42,8 +40,7 @@ export const ManageMembersDialog = ({
     try {
       setRemovingMemberId(memberId);
       
-      await removeTeamMember(memberId);
-      
+      // Remove member from local state
       setTeamMembers(prev => prev.filter(member => member.id !== memberId));
       
       toast({
@@ -89,25 +86,15 @@ export const ManageMembersDialog = ({
               <div key={member.id} className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={member.avatar_url} alt={member.displayName} />
-                    <AvatarFallback>{member.displayName[0].toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={member.avatar_url} alt={member.name} />
+                    <AvatarFallback>{member.name[0].toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium text-sm">
-                      {member.displayName}
-                      {member.invited && !member.user_id && (
-                        <Badge variant="outline" className="ml-2 text-xs">Invited</Badge>
-                      )}
-                    </p>
+                    <p className="font-medium text-sm">{member.name}</p>
                     <p className="text-xs text-muted-foreground">{member.role}</p>
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  {member.invited && !member.user_id && (
-                    <Button size="icon" variant="ghost" className="text-blue-500">
-                      <Mail className="h-4 w-4" />
-                    </Button>
-                  )}
                   <Button 
                     size="icon" 
                     variant="ghost" 

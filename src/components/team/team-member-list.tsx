@@ -1,71 +1,33 @@
 
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { fetchTeamMembers } from "./services/team-member-service";
 import { TeamMember } from "./types/team-member";
 
 interface TeamMemberListProps {
   teamName: string;
   onAddMember: () => void;
+  teamMembers: TeamMember[];
 }
 
-export const TeamMemberList = ({ teamName, onAddMember }: TeamMemberListProps) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    async function loadTeamMembers() {
-      if (!teamName) return;
-      
-      try {
-        setIsLoading(true);
-        const members = await fetchTeamMembers(teamName);
-        setTeamMembers(members);
-      } catch (error) {
-        console.error("Error loading team members:", error);
-        toast({
-          title: "Failed to load team members",
-          description: "Please try again later",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    loadTeamMembers();
-  }, [teamName, toast]);
-
+export const TeamMemberList = ({ teamName, onAddMember, teamMembers = [] }: TeamMemberListProps) => {
   return (
     <Card className="lg:col-span-1">
       <CardHeader>
         <CardTitle>Team Members</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isLoading ? (
-          <div className="flex justify-center py-4">
-            <div className="animate-spin h-6 w-6 border-t-2 border-b-2 border-primary rounded-full"></div>
-          </div>
-        ) : teamMembers.length > 0 ? (
+        {teamMembers.length > 0 ? (
           teamMembers.map(member => (
             <div key={member.id} className="flex items-center gap-3">
               <Avatar>
-                <AvatarImage src={member.avatar_url} alt={member.displayName} />
-                <AvatarFallback>{member.displayName[0].toUpperCase()}</AvatarFallback>
+                <AvatarImage src={member.avatar_url} alt={member.name} />
+                <AvatarFallback>{member.name[0].toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <p className="font-medium">
-                  {member.displayName}
-                  {member.invited && !member.user_id && (
-                    <Badge variant="outline" className="ml-2 text-xs">Invited</Badge>
-                  )}
-                </p>
+                <p className="font-medium">{member.name}</p>
                 <p className="text-sm text-muted-foreground">{member.role}</p>
               </div>
             </div>
