@@ -12,6 +12,7 @@ import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import ProjectNew from "./pages/ProjectNew";
 import Teams from "./pages/Teams";
+import TeamDetail from "./pages/TeamDetail";
 import Roadmap from "./pages/Roadmap";
 import TaskDetailPage from "./pages/TaskDetail";
 import NotFound from "./pages/NotFound";
@@ -36,6 +37,7 @@ const AppRoutes = () => {
                   <Route path="/projects/new" element={<ProjectNew />} />
                   <Route path="/projects/:id" element={<ProjectDetail />} />
                   <Route path="/teams" element={<Teams />} />
+                  <Route path="/teams/:teamName" element={<TeamDetail />} />
                   <Route path="/roadmap" element={<Roadmap />} />
                   <Route path="/roadmap/tasks/:id" element={<TaskDetailPage />} />
                   <Route path="*" element={<NotFound />} />
