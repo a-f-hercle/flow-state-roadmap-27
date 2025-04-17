@@ -80,7 +80,7 @@ export function ProductRoadmap() {
 
   const handleMoveStart = useCallback(() => {
     setIsDragging(true);
-    toast.info("Hold Alt or click and drag to move items. Use resize handle to adjust duration.", {
+    toast.info("Right-click or use Alt+click to drag items. Use resize handle to adjust duration.", {
       id: "move-timeline-item",
       duration: 3000
     });
@@ -168,7 +168,7 @@ export function ProductRoadmap() {
             Planning and tracking of projects throughout 2025
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            <em>Tip: Hold Alt key while clicking and drag to move items, or use the handle on the right to resize</em>
+            <em>Tip: Right-click or use Alt+click to drag items, click to open details, use the handle on the right to resize</em>
           </p>
         </div>
         <Button 
@@ -229,8 +229,8 @@ export function ProductRoadmap() {
                         {team}
                       </div>
                       
-                      {/* Timeline area with grid for months */}
-                      <div className="flex-1 min-h-60 relative">
+                      {/* Timeline area with grid for months and weeks */}
+                      <div className="flex-1 min-h-60 relative roadmap-timeline">
                         <div className="grid grid-cols-12 h-full">
                           {Array.from({ length: 12 }).map((_, i) => (
                             <div key={i} className="border-r last:border-r-0 h-full">

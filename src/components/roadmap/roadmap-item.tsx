@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Project } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -84,8 +85,8 @@ export function RoadmapItem({
     // Store when the mouse was pressed down
     mouseDownTimeRef.current = Date.now();
     
-    // Initiate drag with any mouse button when holding the Alt key or on long press
-    if (e.altKey || e.button === 0) {
+    // Initiate drag with right mouse button, Alt key, or when holding the middle mouse button
+    if (e.button === 2 || e.altKey || e.button === 1) {
       e.preventDefault();
       e.stopPropagation();
       setIsDragging(true);
