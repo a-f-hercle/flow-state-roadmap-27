@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+
+import { useState, useMemo, useCallback } from "react";
 import { 
   Card, 
   CardContent, 
@@ -12,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useProjects } from "@/context/project-context";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { RoadmapItem } from "./roadmap-item";
 
 // Define team colors
 const teamColors = {
@@ -35,6 +37,7 @@ export function ProductRoadmap() {
   const navigate = useNavigate();
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const { projects } = useProjects();
+  const [isDragging, setIsDragging] = useState(false);
   
   // Include all projects on the roadmap by providing default values if missing
   const roadmapProjects = useMemo(() => {
@@ -76,9 +79,25 @@ export function ProductRoadmap() {
     ? selectedTeams 
     : teams;
 
-  const handleProjectClick = (projectId: string) => {
-    navigate(`/projects/${projectId}`);
-  };
+  const handleProjectClick = useCallback((projectId: string) => {
+    if (!isDragging) {
+      navigate(`/projects/${projectId}`);
+    }
+  }, [navigate, isDragging]);
+
+  const handleMoveStart = useCallback(() => {
+    setIsDragging(true);
+    toast.info("Right-click drag to move the project on the timeline", {
+      id: "move-timeline-item",
+      duration: 2000
+    });
+  }, []);
+
+  const handleTimelineClick = useCallback((e: React.MouseEvent) => {
+    if (isDragging) {
+      setIsDragging(false);
+    }
+  }, [isDragging]);
 
   // Calculate project position and width on the timeline based on dates
   // This will prevent overlaps by arranging them in rows
@@ -150,24 +169,6 @@ export function ProductRoadmap() {
     return rows;
   };
   
-  // Get status label
-  const getStatusLabel = (status: string | undefined) => {
-    if (!status) return '';
-    
-    switch(status) {
-      case 'completed': return 'Completed';
-      case 'in-progress': return 'In Progress';
-      case 'planned': return 'Planned';
-      case 'blocked': return 'Blocked';
-      default: return status;
-    }
-  };
-
-  // Format date in shortened format
-  const formatShortDate = (date: Date) => {
-    return format(date, "MMM d");
-  };
-  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -175,6 +176,9 @@ export function ProductRoadmap() {
           <h1 className="text-3xl font-bold tracking-tight">Product Roadmap 2025</h1>
           <p className="text-muted-foreground">
             Planning and tracking of projects throughout 2025
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            <em>Tip: Right-click and drag to move items on the timeline</em>
           </p>
         </div>
         <Button 
@@ -211,7 +215,7 @@ export function ProductRoadmap() {
           <CardHeader className="pb-0">
             <CardTitle>2025 Roadmap</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent onClick={handleTimelineClick}>
             <div className="overflow-x-auto">
               <div className="min-w-[1200px]">
                 {/* Month Headers */}
@@ -236,40 +240,23 @@ export function ProductRoadmap() {
                       </div>
                       
                       {/* Project Blocks */}
-                      <div className="col-span-12 min-h-60 pt-2 pb-4 pl-36 relative">
+                      <div className="col-span-12 min-h-60 pt-2 pb-4 pl-36 relative roadmap-timeline">
                         {getProjectPositionAndRows(team).map(({ project, row, leftPos, width }) => {
                           const topPos = `${row * 35 + 10}px`; // Position based on calculated row
+                          const projectStatus = project.status || 'planned';
                           
                           return (
-                            <div
+                            <RoadmapItem
                               key={project.id}
-                              className={`absolute ${teamColors[project.team as keyof typeof teamColors]} ${statusStyles[project.status as keyof typeof statusStyles]} border rounded-md p-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
-                              style={{ 
-                                left: leftPos, 
-                                width: width,
-                                top: topPos
-                              }}
-                              onClick={() => handleProjectClick(project.id)}
-                            >
-                              <div className="text-sm font-medium truncate">{project.title}</div>
-                              <div className="flex items-center justify-between mt-1 text-xs">
-                                <div className="flex items-center">
-                                  <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
-                                  <span>
-                                    {formatShortDate(project.startDate!)} - {formatShortDate(project.endDate!)}
-                                  </span>
-                                </div>
-                                <Badge 
-                                  className={`text-[10px] h-4 py-0 ${
-                                    project.status === 'completed' ? 'bg-green-500' : 
-                                    project.status === 'in-progress' ? 'bg-blue-500' : 
-                                    project.status === 'blocked' ? 'bg-red-500' : 'bg-amber-500'
-                                  }`}
-                                >
-                                  {getStatusLabel(project.status)}
-                                </Badge>
-                              </div>
-                            </div>
+                              project={project}
+                              teamColor={teamColors[project.team as keyof typeof teamColors]}
+                              statusStyle={statusStyles[projectStatus as keyof typeof statusStyles]}
+                              leftPos={leftPos}
+                              width={width}
+                              topPos={topPos}
+                              onMoveStart={handleMoveStart}
+                              onProjectClick={handleProjectClick}
+                            />
                           );
                         })}
                       </div>
