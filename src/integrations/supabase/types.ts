@@ -80,7 +80,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_team_member_bypass: {
+        Args: {
+          p_team_name: string
+          p_role: string
+          p_email: string
+          p_name: string
+          p_avatar_url?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

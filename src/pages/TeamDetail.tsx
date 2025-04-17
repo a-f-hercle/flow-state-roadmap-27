@@ -173,7 +173,7 @@ export default function TeamDetail() {
       let memberId: string | undefined;
       
       if (bypassAuth) {
-        const { data: newMember, error } = await supabase
+        const { data: newMemberId, error } = await supabase
           .rpc('add_team_member_bypass', {
             p_team_name: teamName,
             p_role: data.role,
@@ -187,7 +187,7 @@ export default function TeamDetail() {
           throw error;
         }
         
-        memberId = newMember;
+        memberId = newMemberId;
       } else {
         const { data: newMember, error } = await supabase
           .from('team_members')
