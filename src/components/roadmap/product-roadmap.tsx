@@ -79,9 +79,9 @@ export function ProductRoadmap() {
 
   const handleMoveStart = useCallback(() => {
     setIsDragging(true);
-    toast.info("Drag to move, use resize handle to change duration", {
+    toast.info("Hold Alt or click and drag to move items. Use resize handle to adjust duration.", {
       id: "move-timeline-item",
-      duration: 2000
+      duration: 3000
     });
   }, []);
 
@@ -161,7 +161,7 @@ export function ProductRoadmap() {
             Planning and tracking of projects throughout 2025
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            <em>Tip: Click to view details, right-click and drag to move, or use handle to resize</em>
+            <em>Tip: Hold Alt key while clicking and drag to move items, or use the handle on the right to resize</em>
           </p>
         </div>
         <Button 

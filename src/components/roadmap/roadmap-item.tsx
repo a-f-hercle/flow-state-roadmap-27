@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Project } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +68,16 @@ export function RoadmapItem({
     }
   }, []);
 
+  // Update position and width when props change
+  useEffect(() => {
+    if (!isDragging) {
+      setPosition({ left: leftPos, top: topPos });
+    }
+    if (!isResizing) {
+      setItemWidth(width);
+    }
+  }, [leftPos, topPos, width, isDragging, isResizing]);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     // Don't activate dragging when clicking on the resize handle
     if ((e.target as HTMLElement).closest('.resize-handle')) return;
@@ -74,8 +85,8 @@ export function RoadmapItem({
     // Store when the mouse was pressed down
     mouseDownTimeRef.current = Date.now();
     
-    // Only initiate drag with right mouse button or when Ctrl/Cmd is pressed
-    if (e.button === 2 || e.ctrlKey || e.metaKey) {
+    // Initiate drag with any mouse button when holding the Alt key or on long press
+    if (e.altKey || e.button === 0) {
       e.preventDefault();
       e.stopPropagation();
       setIsDragging(true);
@@ -221,19 +232,16 @@ export function RoadmapItem({
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    // Check if the click started as a drag/resize operation
-    if (isDraggingRef.current || isResizingRef.current) {
+    // Prevent navigation when clicking on resize handle or during drag operations
+    if ((e.target as HTMLElement).closest('.resize-handle')) {
       return;
     }
     
     // Check if it's not a drag attempt (clicked and released quickly)
     const clickDuration = Date.now() - mouseDownTimeRef.current;
-    if (clickDuration < 200) {
-      // If click is on resize handle, don't navigate
-      if ((e.target as HTMLElement).closest('.resize-handle')) {
-        return;
-      }
-      
+    
+    // Navigation only happens for short clicks and when not dragging/resizing
+    if (clickDuration < 200 && !isDraggingRef.current && !isResizingRef.current) {
       onProjectClick(project.id);
     }
   };
@@ -251,16 +259,10 @@ export function RoadmapItem({
       onMouseDown={handleMouseDown}
       onContextMenu={(e) => e.preventDefault()} // Prevent context menu on right click
     >
-      <div className="text-sm font-medium truncate">{project.title}</div>
-      <div className="flex items-center justify-between mt-1 text-xs">
-        <div className="flex items-center">
-          <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
-          <span>
-            {formatShortDate(project.startDate!)} - {formatShortDate(project.endDate!)}
-          </span>
-        </div>
+      <div className="flex items-center justify-between mb-1">
+        <div className="text-sm font-medium truncate">{project.title}</div>
         <Badge 
-          className={`text-[10px] h-4 py-0 ${
+          className={`text-[10px] h-4 py-0 ml-1 ${
             project.status === 'completed' ? 'bg-green-500' : 
             project.status === 'in-progress' ? 'bg-blue-500' : 
             project.status === 'blocked' ? 'bg-red-500' : 'bg-amber-500'
@@ -269,14 +271,27 @@ export function RoadmapItem({
           {getStatusLabel(project.status)}
         </Badge>
       </div>
+      <div className="flex items-center text-xs text-muted-foreground">
+        <Clock className="h-3 w-3 mr-1" />
+        <span>
+          {formatShortDate(project.startDate!)} - {formatShortDate(project.endDate!)}
+        </span>
+      </div>
       
-      {/* Resize handle - made more visible */}
+      {/* Resize handle */}
       <div 
         className="resize-handle absolute right-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-ew-resize hover:bg-black/10 dark:hover:bg-white/10 rounded-r-md"
         onMouseDown={handleResizeStart}
       >
         <GripHorizontal className="h-4 w-4 text-muted-foreground" />
       </div>
+      
+      {/* Drag helper tooltip */}
+      {isDragging && (
+        <div className="absolute -top-8 left-0 bg-black text-white text-xs px-2 py-1 rounded">
+          Dragging...
+        </div>
+      )}
     </div>
   );
 }
