@@ -54,7 +54,6 @@ export const addTeamMember = async (
         team_name: teamName,
         role: data.role,
         email: data.email,
-        name: data.name,
         invited: true,
         avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}`,
       })
@@ -89,10 +88,10 @@ export const addTeamMember = async (
   
   return {
     id: memberData.id,
-    name: data.name || memberData.name || '',
+    name: data.name || memberData.email?.split('@')[0] || 'Unnamed',  // Use the name from the form data or generate from email
     role: memberData.role,
     email: memberData.email || '',
     avatar: memberData.avatar_url || undefined,
-    invited: true,
+    invited: memberData.invited || true,
   };
 };
