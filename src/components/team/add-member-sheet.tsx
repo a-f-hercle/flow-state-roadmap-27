@@ -37,7 +37,13 @@ export const AddMemberSheet = ({
     setIsSubmitting(true);
     
     try {
-      const newTeamMember = await addTeamMember(teamName, data, bypassAuth);
+      // Ensure data is complete before passing to addTeamMember
+      const memberData = {
+        email: data.email,
+        role: data.role
+      };
+      
+      const newTeamMember = await addTeamMember(teamName, memberData, bypassAuth);
       
       setTeamMembers(prev => [...prev, newTeamMember]);
       onOpenChange(false);
