@@ -81,7 +81,7 @@ const App = () => (
               </SidebarProvider>
             </div>
             <Toaster />
-            <Sonner />
+            <Sonner position="top-right" closeButton richColors />
           </ProjectProvider>
         </AuthProvider>
       </BrowserRouter>

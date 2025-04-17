@@ -25,6 +25,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/auth-context";
 import { TeamMember } from "./team-member-list";
+import { toast as sonnerToast } from "@/components/ui/sonner";
+import { AlertTriangle } from "lucide-react";
 
 const addMemberSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -63,13 +65,10 @@ export const AddMemberSheet = ({
     if (!teamName) return;
     
     try {
-      console.log("Adding team member with data:", data);
-      console.log("Team name:", teamName);
-      
       // Check if member with same email already exists
       const { data: existingMember, error: existingError } = await supabase
         .from('team_members')
-        .select('id')
+        .select('*')
         .eq('email', data.email)
         .maybeSingle();
 
@@ -84,10 +83,9 @@ export const AddMemberSheet = ({
           message: "A member with this email already exists" 
         });
         
-        toast({
-          title: "Member already exists",
+        sonnerToast("Member already exists", {
           description: "A team member with this email address already exists",
-          variant: "destructive",
+          icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
         });
         
         return;
@@ -107,6 +105,22 @@ export const AddMemberSheet = ({
           
         if (error) {
           console.error("Error adding team member:", error);
+          
+          // Handle duplicate key error specifically
+          if (error.code === '23505') {
+            form.setError("email", { 
+              type: "manual", 
+              message: "A member with this email already exists" 
+            });
+            
+            sonnerToast("Member already exists", {
+              description: "A team member with this email address already exists",
+              icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
+            });
+            
+            return;
+          }
+          
           throw error;
         }
         
@@ -128,7 +142,24 @@ export const AddMemberSheet = ({
           .select()
           .single();
           
-        if (error) throw error;
+        if (error) {
+          // Handle duplicate key error specifically
+          if (error.code === '23505') {
+            form.setError("email", { 
+              type: "manual", 
+              message: "A member with this email already exists" 
+            });
+            
+            sonnerToast("Member already exists", {
+              description: "A team member with this email address already exists",
+              icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
+            });
+            
+            return;
+          }
+          
+          throw error;
+        }
         
         memberId = newMember.id;
       }
@@ -165,16 +196,14 @@ export const AddMemberSheet = ({
       onOpenChange(false);
       form.reset();
       
-      toast({
-        title: "Member invited",
+      sonnerToast("Member invited", {
         description: `${data.email} has been invited to the ${teamName} team`,
       });
     } catch (error) {
       console.error("Error adding team member:", error);
-      toast({
-        title: "Failed to add member",
+      sonnerToast("Failed to add member", {
         description: "Please try again later",
-        variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
       });
     }
   };
