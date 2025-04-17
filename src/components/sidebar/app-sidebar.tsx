@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Briefcase, LayoutDashboard, Search, Settings, Users } from "lucide-react";
+import { PlusCircle, Briefcase, LayoutDashboard, Search, Settings, Users, Route } from "lucide-react";
 
 export function AppSidebar() {
   const navigate = useNavigate();
@@ -37,6 +37,11 @@ export function AppSidebar() {
       icon: Users,
       path: "/teams",
     },
+    {
+      label: "Roadmap",
+      icon: Route,
+      path: "/roadmap",
+    }
   ];
 
   return (
