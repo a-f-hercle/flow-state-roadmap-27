@@ -1,5 +1,5 @@
 
-export type ProjectPhase = 'proposal' | 'prototype' | 'build' | 'release' | 'results';
+export type ProjectPhase = 'proposal' | 'build' | 'release' | 'results';
 
 export type ReviewStatus = 'pending' | 'approved' | 'rejected';
 
@@ -40,4 +40,22 @@ export type Project = {
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type TaskCategory = 'feature' | 'bugfix' | 'improvement' | 'refactor' | 'infrastructure' | 'documentation';
+
+export type TaskStatus = 'planned' | 'in-progress' | 'completed' | 'blocked';
+
+export type Task = {
+  id: string;
+  title: string;
+  description: string;
+  category: TaskCategory;
+  status: TaskStatus;
+  startDate: Date;
+  endDate: Date;
+  team: string;
+  assignee?: string;
+  projectId?: string;
+  color?: string;
 };

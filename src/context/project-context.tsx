@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { Project, ProjectPhase, Review, ReviewStatus } from '@/types';
 import { mockProjects } from '@/data/mock-data';
@@ -118,7 +117,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   };
 
   const getNextPhase = (currentPhase: ProjectPhase): ProjectPhase | undefined => {
-    const phases: ProjectPhase[] = ['proposal', 'prototype', 'build', 'release', 'results'];
+    const phases: ProjectPhase[] = ['proposal', 'build', 'release', 'results'];
     const currentIndex = phases.indexOf(currentPhase);
     if (currentIndex < phases.length - 1) {
       return phases[currentIndex + 1];

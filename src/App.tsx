@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +12,8 @@ import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import ProjectNew from "./pages/ProjectNew";
 import Teams from "./pages/Teams";
+import Roadmap from "./pages/Roadmap";
+import TaskDetailPage from "./pages/TaskDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +36,8 @@ const AppRoutes = () => {
                   <Route path="/projects/new" element={<ProjectNew />} />
                   <Route path="/projects/:id" element={<ProjectDetail />} />
                   <Route path="/teams" element={<Teams />} />
+                  <Route path="/roadmap" element={<Roadmap />} />
+                  <Route path="/roadmap/tasks/:id" element={<TaskDetailPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
