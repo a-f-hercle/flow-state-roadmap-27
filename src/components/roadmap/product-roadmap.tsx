@@ -36,13 +36,17 @@ export function ProductRoadmap() {
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const { projects } = useProjects();
   
-  // Filter projects with required date fields - removed displayOnRoadmap requirement
+  // Include all projects on the roadmap by providing default values if missing
   const roadmapProjects = useMemo(() => {
-    return projects.filter(project => 
-      project.startDate && 
-      project.endDate && 
-      project.status
-    );
+    return projects.map(project => {
+      // Add default values for projects missing roadmap data
+      return {
+        ...project,
+        startDate: project.startDate || new Date(),
+        endDate: project.endDate || new Date(new Date().setMonth(new Date().getMonth() + 1)),
+        status: project.status || 'planned'
+      };
+    });
   }, [projects]);
   
   // Group projects by team
