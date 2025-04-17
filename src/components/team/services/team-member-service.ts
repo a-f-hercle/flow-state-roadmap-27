@@ -8,6 +8,23 @@ export const addTeamMember = async (
   data: AddMemberFormValues,
   bypassAuth: boolean
 ): Promise<TeamMember> => {
+  // First check if member already exists in this team
+  const { data: existingMember, error: checkError } = await supabase
+    .from('team_members')
+    .select('*')
+    .eq('team_name', teamName)
+    .eq('email', data.email)
+    .maybeSingle();
+    
+  if (checkError) {
+    console.error("Error checking for existing team member:", checkError);
+    throw new Error("Failed to check for existing team member");
+  }
+  
+  if (existingMember) {
+    throw new Error(`${data.email} is already a member of the ${teamName} team`);
+  }
+  
   let memberId: string | undefined;
   
   if (bypassAuth) {
@@ -37,6 +54,7 @@ export const addTeamMember = async (
         team_name: teamName,
         role: data.role,
         email: data.email,
+        name: data.name,
         invited: true,
         avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}`,
       })
@@ -71,7 +89,7 @@ export const addTeamMember = async (
   
   return {
     id: memberData.id,
-    name: data.name,
+    name: data.name || memberData.name || '',
     role: memberData.role,
     email: memberData.email || '',
     avatar: memberData.avatar_url || undefined,

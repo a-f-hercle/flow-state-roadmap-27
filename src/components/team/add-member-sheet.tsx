@@ -7,12 +7,13 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { toast as sonnerToast } from "@/components/ui/sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CheckCircle } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { TeamMember } from "./team-member-list";
 import { AddMemberForm } from "./add-member-form";
 import { AddMemberFormValues } from "./schemas/member-form-schema";
 import { addTeamMember } from "./services/team-member-service";
+import { useState } from "react";
 
 interface AddMemberSheetProps {
   isOpen: boolean;
@@ -28,9 +29,12 @@ export const AddMemberSheet = ({
   setTeamMembers,
 }: AddMemberSheetProps) => {
   const { bypassAuth } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onAddMemberSubmit = async (data: AddMemberFormValues) => {
     if (!teamName) return;
+    
+    setIsSubmitting(true);
     
     try {
       const newTeamMember = await addTeamMember(teamName, data, bypassAuth);
@@ -38,15 +42,24 @@ export const AddMemberSheet = ({
       setTeamMembers(prev => [...prev, newTeamMember]);
       onOpenChange(false);
       
-      sonnerToast("Member invited", {
-        description: `${data.email} has been invited to the ${teamName} team`,
+      sonnerToast("Member added successfully", {
+        description: `${data.email} has been added to the ${teamName} team`,
+        icon: <CheckCircle className="h-5 w-5 text-green-500" />,
       });
     } catch (error) {
       console.error("Error adding team member:", error);
+      
+      // Display a more user-friendly error message
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "An unexpected error occurred. Please try again.";
+        
       sonnerToast("Failed to add member", {
-        description: "Please try again later",
+        description: errorMessage,
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -63,6 +76,7 @@ export const AddMemberSheet = ({
         <AddMemberForm
           onSubmit={onAddMemberSubmit}
           onCancel={() => onOpenChange(false)}
+          isSubmitting={isSubmitting}
         />
       </SheetContent>
     </Sheet>

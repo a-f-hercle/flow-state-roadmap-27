@@ -43,7 +43,7 @@ export const TeamMemberList = ({ teamName, onAddMember }: TeamMemberListProps) =
         
         const formattedMembers: TeamMember[] = data.map(member => ({
           id: member.id,
-          name: member.email?.split('@')[0] || 'Unnamed',
+          name: member.name || member.email?.split('@')[0] || 'Unnamed',
           role: member.role,
           email: member.email || '',
           avatar: member.avatar_url || undefined,

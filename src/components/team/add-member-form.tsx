@@ -13,13 +13,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addMemberSchema, AddMemberFormValues } from "./schemas/member-form-schema";
 import { SheetFooter } from "@/components/ui/sheet";
+import { Loader2 } from "lucide-react";
 
 interface AddMemberFormProps {
   onSubmit: (data: AddMemberFormValues) => Promise<void>;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-export const AddMemberForm = ({ onSubmit, onCancel }: AddMemberFormProps) => {
+export const AddMemberForm = ({ onSubmit, onCancel, isSubmitting = false }: AddMemberFormProps) => {
   const form = useForm<AddMemberFormValues>({
     resolver: zodResolver(addMemberSchema),
     defaultValues: {
@@ -39,7 +41,7 @@ export const AddMemberForm = ({ onSubmit, onCancel }: AddMemberFormProps) => {
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" {...field} />
+                <Input placeholder="John Doe" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -53,7 +55,7 @@ export const AddMemberForm = ({ onSubmit, onCancel }: AddMemberFormProps) => {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="team.member@example.com" {...field} />
+                <Input placeholder="team.member@example.com" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -67,7 +69,7 @@ export const AddMemberForm = ({ onSubmit, onCancel }: AddMemberFormProps) => {
             <FormItem>
               <FormLabel>Role</FormLabel>
               <FormControl>
-                <Input placeholder="Enter role" {...field} />
+                <Input placeholder="Enter role" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -75,10 +77,19 @@ export const AddMemberForm = ({ onSubmit, onCancel }: AddMemberFormProps) => {
         />
         
         <SheetFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit">Add Member</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Adding...
+              </>
+            ) : (
+              'Add Member'
+            )}
+          </Button>
         </SheetFooter>
       </form>
     </Form>

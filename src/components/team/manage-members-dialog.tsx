@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Mail, UserPlus2, X } from "lucide-react";
+import { Loader2, Mail, UserPlus2, X } from "lucide-react";
 import { TeamMember } from "./team-member-list";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,9 +36,12 @@ export const ManageMembersDialog = ({
   isLoading,
 }: ManageMembersDialogProps) => {
   const { toast } = useToast();
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
 
   const handleRemoveMember = async (memberId: string) => {
     try {
+      setRemovingMemberId(memberId);
+      
       const { error } = await supabase
         .from('team_members')
         .delete()
@@ -59,6 +62,8 @@ export const ManageMembersDialog = ({
         description: "Please try again later",
         variant: "destructive",
       });
+    } finally {
+      setRemovingMemberId(null);
     }
   };
 
@@ -113,8 +118,13 @@ export const ManageMembersDialog = ({
                     variant="ghost" 
                     className="text-red-500"
                     onClick={() => handleRemoveMember(member.id)}
+                    disabled={removingMemberId === member.id}
                   >
-                    <X className="h-4 w-4" />
+                    {removingMemberId === member.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <X className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
