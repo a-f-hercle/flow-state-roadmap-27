@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useProjects } from "@/context/project-context";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhaseBadge } from "@/components/ui/phase-badge";
 import { PhaseTimeline } from "@/components/project/phase-timeline";
+import { ProjectHistory } from "@/components/project/project-history";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ArrowLeft, Calendar, Clock, Users, Tag, Edit } from "lucide-react";
@@ -133,6 +135,7 @@ export default function ProjectDetail() {
         <TabsList>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
         
         <TabsContent value="timeline" className="space-y-4">
@@ -232,6 +235,10 @@ export default function ProjectDetail() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="history" className="space-y-4">
+          <ProjectHistory history={project.history} />
         </TabsContent>
       </Tabs>
       

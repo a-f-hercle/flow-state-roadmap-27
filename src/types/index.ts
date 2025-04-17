@@ -21,6 +21,21 @@ export type Review = {
   }[];
 };
 
+export type HistoryAction = 'created' | 'updated' | 'phase-change' | 'timeline-change' | 'characteristic-change';
+
+export type HistoryEntry = {
+  id: string;
+  timestamp: Date;
+  action: HistoryAction;
+  user: string;
+  details: {
+    field?: string;
+    previousValue?: any;
+    newValue?: any;
+    description?: string;
+  };
+};
+
 export type Project = {
   id: string;
   title: string;
@@ -46,6 +61,8 @@ export type Project = {
   status?: 'planned' | 'in-progress' | 'completed' | 'blocked';
   category?: TaskCategory;
   displayOnRoadmap?: boolean;
+  // History tracking
+  history?: HistoryEntry[];
 };
 
 export type TaskCategory = 'feature' | 'bugfix' | 'improvement' | 'refactor' | 'infrastructure' | 'documentation' | 'compliance' | 'security';
