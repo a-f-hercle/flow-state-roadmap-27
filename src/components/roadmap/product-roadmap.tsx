@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { 
   Card, 
@@ -37,10 +36,9 @@ export function ProductRoadmap() {
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const { projects } = useProjects();
   
-  // Filter projects with roadmap data
+  // Filter projects with required date fields - removed displayOnRoadmap requirement
   const roadmapProjects = useMemo(() => {
     return projects.filter(project => 
-      project.displayOnRoadmap && 
       project.startDate && 
       project.endDate && 
       project.status
@@ -197,7 +195,7 @@ export function ProductRoadmap() {
       
       {teams.length === 0 ? (
         <Card className="p-8 text-center">
-          <p className="text-muted-foreground mb-4">No projects added to the roadmap yet.</p>
+          <p className="text-muted-foreground mb-4">No projects with timeline data available.</p>
           <Button 
             onClick={() => navigate("/projects/new?roadmap=true")}
           >
