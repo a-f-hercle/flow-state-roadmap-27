@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,32 +64,6 @@ export const AddMemberSheet = ({
     if (!teamName) return;
     
     try {
-      // Check if member with same email already exists
-      const { data: existingMember, error: existingError } = await supabase
-        .from('team_members')
-        .select('*')
-        .eq('email', data.email)
-        .maybeSingle();
-
-      if (existingError) {
-        console.error("Error checking existing members:", existingError);
-      }
-      
-      // If member already exists with this email, show error and return
-      if (existingMember) {
-        form.setError("email", { 
-          type: "manual", 
-          message: "A member with this email already exists" 
-        });
-        
-        sonnerToast("Member already exists", {
-          description: "A team member with this email address already exists",
-          icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
-        });
-        
-        return;
-      }
-      
       let memberId: string | undefined;
       
       if (bypassAuth) {
@@ -106,21 +79,7 @@ export const AddMemberSheet = ({
         if (error) {
           console.error("Error adding team member:", error);
           
-          // Handle duplicate key error specifically
-          if (error.code === '23505') {
-            form.setError("email", { 
-              type: "manual", 
-              message: "A member with this email already exists" 
-            });
-            
-            sonnerToast("Member already exists", {
-              description: "A team member with this email address already exists",
-              icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
-            });
-            
-            return;
-          }
-          
+          // No specific handling needed now that we allow duplicate emails across teams
           throw error;
         }
         
@@ -143,21 +102,7 @@ export const AddMemberSheet = ({
           .single();
           
         if (error) {
-          // Handle duplicate key error specifically
-          if (error.code === '23505') {
-            form.setError("email", { 
-              type: "manual", 
-              message: "A member with this email already exists" 
-            });
-            
-            sonnerToast("Member already exists", {
-              description: "A team member with this email address already exists",
-              icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
-            });
-            
-            return;
-          }
-          
+          // No specific handling needed now that we allow duplicate emails across teams
           throw error;
         }
         
