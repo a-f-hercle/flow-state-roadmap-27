@@ -23,9 +23,9 @@ import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
-// Protected route component
+// Modified ProtectedRoute component to allow access when bypassing auth
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, bypassAuth } = useAuth();
   const location = useLocation();
   
   if (isLoading) {
@@ -36,7 +36,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
-  if (!user) {
+  // Allow access when bypassing authentication
+  if (!user && !bypassAuth) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
   
@@ -44,11 +45,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, bypassAuth } = useAuth();
 
   return (
     <Routes>
-      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
+      <Route path="/auth" element={user || bypassAuth ? <Navigate to="/" replace /> : <Auth />} />
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
       <Route path="/projects/new" element={<ProtectedRoute><ProjectNew /></ProtectedRoute>} />

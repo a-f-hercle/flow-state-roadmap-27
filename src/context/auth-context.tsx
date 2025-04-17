@@ -9,6 +9,7 @@ type AuthContextType = {
   session: Session | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  bypassAuth: boolean; // Add a bypass flag
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,7 +17,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Set to false initially
+  const [bypassAuth, setBypassAuth] = useState(true); // Set bypass to true for now
   const { toast } = useToast();
 
   useEffect(() => {
@@ -42,12 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setIsLoading(false);
-    });
+    // No need to check for session initially when bypassing
 
     return () => {
       subscription.unsubscribe();
@@ -72,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
+    <AuthContext.Provider value={{ user, session, isLoading, signOut, bypassAuth }}>
       {children}
     </AuthContext.Provider>
   );
