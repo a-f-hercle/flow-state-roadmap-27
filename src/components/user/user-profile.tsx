@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 type Profile = {
   id: string;
@@ -18,10 +19,19 @@ type Profile = {
   role: string | null;
 };
 
+type TeamInvite = {
+  id: string;
+  team_name: string;
+  role: string;
+  email: string;
+};
+
 export function UserProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [teamInvites, setTeamInvites] = useState<TeamInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInvitesLoading, setIsInvitesLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [formData, setFormData] = useState<Partial<Profile>>({});
   const { toast } = useToast();
@@ -42,7 +52,7 @@ export function UserProfile() {
 
         setProfile(data);
         setFormData({
-          full_name: data.full_name || user.user_metadata.full_name,
+          full_name: data.full_name || user.user_metadata?.full_name,
           team: data.team,
           role: data.role,
         });
@@ -53,7 +63,30 @@ export function UserProfile() {
       }
     }
 
+    async function checkTeamInvites() {
+      if (!user?.email) return;
+      
+      try {
+        setIsInvitesLoading(true);
+        const { data, error } = await supabase
+          .from("team_members")
+          .select("*")
+          .eq("email", user.email)
+          .is("user_id", null)
+          .eq("invited", true);
+          
+        if (error) throw error;
+        
+        setTeamInvites(data as TeamInvite[]);
+      } catch (error) {
+        console.error("Error checking team invites:", error);
+      } finally {
+        setIsInvitesLoading(false);
+      }
+    }
+
     fetchProfile();
+    checkTeamInvites();
   }, [user]);
 
   async function updateProfile() {
@@ -83,7 +116,7 @@ export function UserProfile() {
       // Update local profile state
       setProfile({
         ...profile,
-        ...updates,
+        ...updates as Profile,
       });
     } catch (error) {
       toast({
@@ -94,6 +127,73 @@ export function UserProfile() {
       console.error("Error updating profile:", error);
     } finally {
       setIsUpdating(false);
+    }
+  }
+
+  async function acceptTeamInvite(inviteId: string, teamName: string) {
+    if (!user) return;
+    
+    try {
+      setIsInvitesLoading(true);
+      
+      // Update team_members record to link with user
+      const { error } = await supabase
+        .from("team_members")
+        .update({
+          user_id: user.id,
+          invited: false,
+        })
+        .eq("id", inviteId);
+        
+      if (error) throw error;
+      
+      // Remove accepted invite from local state
+      setTeamInvites(prev => prev.filter(invite => invite.id !== inviteId));
+      
+      toast({
+        title: "Team invite accepted",
+        description: `You have joined the ${teamName} team`,
+      });
+    } catch (error) {
+      console.error("Error accepting team invite:", error);
+      toast({
+        title: "Failed to join team",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsInvitesLoading(false);
+    }
+  }
+  
+  async function declineTeamInvite(inviteId: string, teamName: string) {
+    try {
+      setIsInvitesLoading(true);
+      
+      // Delete the team_members record
+      const { error } = await supabase
+        .from("team_members")
+        .delete()
+        .eq("id", inviteId);
+        
+      if (error) throw error;
+      
+      // Remove declined invite from local state
+      setTeamInvites(prev => prev.filter(invite => invite.id !== inviteId));
+      
+      toast({
+        title: "Team invite declined",
+        description: `You have declined to join the ${teamName} team`,
+      });
+    } catch (error) {
+      console.error("Error declining team invite:", error);
+      toast({
+        title: "Failed to decline invite",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsInvitesLoading(false);
     }
   }
 
@@ -108,102 +208,148 @@ export function UserProfile() {
   if (!user) return null;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Your Profile</CardTitle>
-        <CardDescription>
-          View and edit your profile information
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4">
-          <Avatar className="h-24 w-24">
-            <AvatarImage src={user.user_metadata.avatar_url || profile?.avatar_url || undefined} alt={profile?.full_name || ""} />
-            <AvatarFallback className="text-xl">
-              {(profile?.full_name || user.user_metadata.full_name || "User")
-                .split(" ")
-                .map(n => n[0])
-                .join("")
-                .toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 space-y-4">
+    <div className="space-y-6">
+      {teamInvites.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Team Invitations</CardTitle>
+            <CardDescription>
+              You have been invited to join the following teams
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isInvitesLoading ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin h-6 w-6 border-t-2 border-b-2 border-primary rounded-full"></div>
+                </div>
+              ) : (
+                teamInvites.map(invite => (
+                  <div key={invite.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h3 className="font-semibold">{invite.team_name}</h3>
+                      <p className="text-sm text-muted-foreground">Role: {invite.role}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm"
+                        onClick={() => acceptTeamInvite(invite.id, invite.team_name)}
+                      >
+                        Accept
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => declineTeamInvite(invite.id, invite.team_name)}
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Profile</CardTitle>
+          <CardDescription>
+            View and edit your profile information
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4">
+            <Avatar className="h-24 w-24">
+              <AvatarImage src={user.user_metadata?.avatar_url || profile?.avatar_url || undefined} alt={profile?.full_name || ""} />
+              <AvatarFallback className="text-xl">
+                {(profile?.full_name || user.user_metadata?.full_name || user.email || "User")
+                  .split(" ")
+                  .map(n => n[0])
+                  .join("")
+                  .toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className="flex-1 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  value={formData.full_name || ""}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  placeholder="Your full name"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  value={user.email || ""}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">Email address cannot be changed</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                value={formData.full_name || ""}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                placeholder="Your full name"
-              />
+              <Label htmlFor="team">Default Team</Label>
+              <Select 
+                value={formData.team || ""} 
+                onValueChange={(value) => setFormData({ ...formData, team: value })}
+              >
+                <SelectTrigger id="team">
+                  <SelectValue placeholder="Select team" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Tech Trading">Tech Trading</SelectItem>
+                  <SelectItem value="Tech Custody & Banking">Tech Custody & Banking</SelectItem>
+                  <SelectItem value="Tech PMS">Tech PMS</SelectItem>
+                  <SelectItem value="Tech Execution">Tech Execution</SelectItem>
+                  <SelectItem value="Tech Infrastructure">Tech Infrastructure</SelectItem>
+                  <SelectItem value="Business Operations">Business Operations</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                value={user.email || ""}
-                disabled
-                className="bg-muted"
-              />
-              <p className="text-xs text-muted-foreground">Email address cannot be changed</p>
+              <Label htmlFor="role">Primary Role</Label>
+              <Select 
+                value={formData.role || ""} 
+                onValueChange={(value) => setFormData({ ...formData, role: value })}
+              >
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Product Manager">Product Manager</SelectItem>
+                  <SelectItem value="Developer">Developer</SelectItem>
+                  <SelectItem value="Designer">Designer</SelectItem>
+                  <SelectItem value="QA">QA</SelectItem>
+                  <SelectItem value="Team Lead">Team Lead</SelectItem>
+                  <SelectItem value="Director">Director</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="team">Team</Label>
-            <Select 
-              value={formData.team || ""} 
-              onValueChange={(value) => setFormData({ ...formData, team: value })}
-            >
-              <SelectTrigger id="team">
-                <SelectValue placeholder="Select team" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Tech Trading">Tech Trading</SelectItem>
-                <SelectItem value="Tech Custody & Banking">Tech Custody & Banking</SelectItem>
-                <SelectItem value="Tech PMS">Tech PMS</SelectItem>
-                <SelectItem value="Tech Execution">Tech Execution</SelectItem>
-                <SelectItem value="Tech Infrastructure">Tech Infrastructure</SelectItem>
-                <SelectItem value="Business Operations">Business Operations</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Select 
-              value={formData.role || ""} 
-              onValueChange={(value) => setFormData({ ...formData, role: value })}
-            >
-              <SelectTrigger id="role">
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Product Manager">Product Manager</SelectItem>
-                <SelectItem value="Developer">Developer</SelectItem>
-                <SelectItem value="Designer">Designer</SelectItem>
-                <SelectItem value="QA">QA</SelectItem>
-                <SelectItem value="Team Lead">Team Lead</SelectItem>
-                <SelectItem value="Director">Director</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </CardContent>
-      
-      <CardFooter>
-        <Button 
-          onClick={updateProfile} 
-          disabled={isUpdating}
-          className="ml-auto"
-        >
-          {isUpdating ? "Saving..." : "Save Changes"}
-        </Button>
-      </CardFooter>
-    </Card>
+        </CardContent>
+        
+        <CardFooter>
+          <Button 
+            onClick={updateProfile} 
+            disabled={isUpdating}
+            className="ml-auto"
+          >
+            {isUpdating ? "Saving..." : "Save Changes"}
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

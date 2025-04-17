@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { 
   Card, 
   CardContent, 
@@ -13,11 +13,10 @@ import {
   AvatarImage 
 } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { mockReviewers } from "@/data/mock-data";
 import { Button } from "@/components/ui/button";
 import { useProjects } from "@/context/project-context";
 import { ProjectCard } from "@/components/project/project-card";
-import { UsersRound, Plus, UserPlus2, X } from "lucide-react";
+import { UsersRound, Plus, UserPlus2, X, Mail } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -48,30 +47,36 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define the form schema
 const addMemberSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   role: z.string().min(2, { message: "Role must be at least 2 characters" }),
-  avatar: z.string().optional(),
+  email: z.string().email({ message: "Please enter a valid email address" }),
 });
 
 type AddMemberFormValues = z.infer<typeof addMemberSchema>;
 
+type TeamMember = {
+  id: string;
+  name?: string;
+  role: string;
+  avatar?: string;
+  email: string;
+  user_id?: string;
+  invited: boolean;
+};
+
 export default function TeamDetail() {
   const { teamName } = useParams<{ teamName: string }>();
+  const navigate = useNavigate();
   const { projects } = useProjects();
   const [isManageMembersOpen, setIsManageMembersOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const [teamMembers, setTeamMembers] = useState(
-    // Get team members from mockReviewers
-    mockReviewers.filter(member => 
-      // This is a simplified way to match team members - in a real app you'd have a more robust relationship
-      Math.random() > 0.5
-    ).slice(0, 3)
-  );
-
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  
   // Find team projects
   const teamProjects = projects.filter(project => project.team === teamName);
   
@@ -81,11 +86,51 @@ export default function TeamDetail() {
   const form = useForm<AddMemberFormValues>({
     resolver: zodResolver(addMemberSchema),
     defaultValues: {
-      name: "",
       role: "",
-      avatar: "",
+      email: "",
     },
   });
+
+  // Load team members from database
+  useEffect(() => {
+    async function loadTeamMembers() {
+      if (!teamName) return;
+      
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('team_members')
+          .select('*')
+          .eq('team_name', teamName);
+          
+        if (error) throw error;
+        
+        // Transform database records to TeamMember format
+        const formattedMembers: TeamMember[] = data.map(member => ({
+          id: member.id,
+          role: member.role,
+          email: member.email || '',
+          avatar: member.avatar_url || undefined,
+          user_id: member.user_id || undefined,
+          invited: member.invited || false,
+          name: member.email?.split('@')[0] || undefined,
+        }));
+        
+        setTeamMembers(formattedMembers);
+      } catch (error) {
+        console.error("Error loading team members:", error);
+        toast({
+          title: "Failed to load team members",
+          description: "Please try again later",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    loadTeamMembers();
+  }, [teamName, toast]);
 
   const handleManageMembers = () => {
     setIsManageMembersOpen(true);
@@ -95,31 +140,87 @@ export default function TeamDetail() {
     setIsAddMemberOpen(true);
   };
 
-  const handleRemoveMember = (memberId: string) => {
-    setTeamMembers(prev => prev.filter(member => member.id !== memberId));
-    toast({
-      title: "Member removed",
-      description: "The team member has been removed successfully",
-    });
+  const handleRemoveMember = async (memberId: string) => {
+    try {
+      // Delete from database
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('id', memberId);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setTeamMembers(prev => prev.filter(member => member.id !== memberId));
+      
+      toast({
+        title: "Member removed",
+        description: "The team member has been removed successfully",
+      });
+    } catch (error) {
+      console.error("Error removing team member:", error);
+      toast({
+        title: "Failed to remove member",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    }
   };
 
-  const onAddMemberSubmit = (data: AddMemberFormValues) => {
-    const newMember = {
-      id: `member-${Date.now()}`,
-      name: data.name,
-      role: data.role,
-      avatar: data.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}`,
-    };
-
-    setTeamMembers(prev => [...prev, newMember]);
-    setIsAddMemberOpen(false);
-    form.reset();
+  const onAddMemberSubmit = async (data: AddMemberFormValues) => {
+    if (!teamName) return;
     
-    toast({
-      title: "Member added",
-      description: `${data.name} has been added to the ${teamName} team`,
-    });
+    try {
+      // Insert new team member into database
+      const { data: newMember, error } = await supabase
+        .from('team_members')
+        .insert({
+          team_name: teamName,
+          role: data.role,
+          email: data.email,
+          invited: true,
+          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.email.split('@')[0])}`,
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      // Update local state with the new member
+      const newTeamMember: TeamMember = {
+        id: newMember.id,
+        role: newMember.role,
+        email: newMember.email || '',
+        avatar: newMember.avatar_url || undefined,
+        invited: true,
+        name: newMember.email?.split('@')[0] || undefined,
+      };
+      
+      setTeamMembers(prev => [...prev, newTeamMember]);
+      setIsAddMemberOpen(false);
+      form.reset();
+      
+      toast({
+        title: "Member invited",
+        description: `${data.email} has been invited to the ${teamName} team`,
+      });
+    } catch (error) {
+      console.error("Error adding team member:", error);
+      toast({
+        title: "Failed to add member",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (!teamName) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <p>Team not found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -142,18 +243,40 @@ export default function TeamDetail() {
             <CardTitle>Team Members</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {teamMembers.map(member => (
-              <div key={member.id} className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage src={member.avatar} alt={member.name} />
-                  <AvatarFallback>{member.name[0]}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{member.name}</p>
-                  <p className="text-sm text-muted-foreground">{member.role}</p>
-                </div>
+            {isLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin h-6 w-6 border-t-2 border-b-2 border-primary rounded-full"></div>
               </div>
-            ))}
+            ) : teamMembers.length > 0 ? (
+              teamMembers.map(member => (
+                <div key={member.id} className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={member.avatar} alt={member.name || member.email} />
+                    <AvatarFallback>{(member.name || member.email)[0].toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-medium">
+                      {member.name || member.email.split('@')[0]}
+                      {member.invited && !member.user_id && (
+                        <Badge variant="outline" className="ml-2 text-xs">Invited</Badge>
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{member.role}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-muted-foreground py-2">No team members yet</p>
+            )}
+
+            <Button 
+              variant="outline" 
+              className="w-full mt-4" 
+              onClick={handleAddMember}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Team Member
+            </Button>
           </CardContent>
         </Card>
 
@@ -214,23 +337,48 @@ export default function TeamDetail() {
               </Button>
             </div>
             
-            {teamMembers.map(member => (
-              <div key={member.id} className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={member.avatar} alt={member.name} />
-                    <AvatarFallback>{member.name[0]}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium text-sm">{member.name}</p>
-                    <p className="text-xs text-muted-foreground">{member.role}</p>
+            {isLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin h-6 w-6 border-t-2 border-b-2 border-primary rounded-full"></div>
+              </div>
+            ) : teamMembers.length > 0 ? (
+              teamMembers.map(member => (
+                <div key={member.id} className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={member.avatar} alt={member.name || member.email} />
+                      <AvatarFallback>{(member.name || member.email)[0].toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-sm">
+                        {member.name || member.email.split('@')[0]}
+                        {member.invited && !member.user_id && (
+                          <Badge variant="outline" className="ml-2 text-xs">Invited</Badge>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{member.role}</p>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    {member.invited && !member.user_id && (
+                      <Button size="icon" variant="ghost" className="text-blue-500">
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="text-red-500"
+                      onClick={() => handleRemoveMember(member.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => handleRemoveMember(member.id)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-center text-muted-foreground py-2">No team members yet</p>
+            )}
           </div>
           
           <DialogFooter className="sm:justify-end">
@@ -247,7 +395,7 @@ export default function TeamDetail() {
           <SheetHeader>
             <SheetTitle>Add Team Member</SheetTitle>
             <SheetDescription>
-              Add a new member to the {teamName} team.
+              Add a new member to the {teamName} team by email address.
             </SheetDescription>
           </SheetHeader>
           
@@ -255,12 +403,12 @@ export default function TeamDetail() {
             <form onSubmit={form.handleSubmit(onAddMemberSubmit)} className="space-y-6 py-6">
               <FormField
                 control={form.control}
-                name="name"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter name" {...field} />
+                      <Input placeholder="team.member@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -275,20 +423,6 @@ export default function TeamDetail() {
                     <FormLabel>Role</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter role" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="avatar"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Avatar URL (optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://example.com/avatar.png" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

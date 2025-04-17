@@ -1,4 +1,3 @@
-
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -13,10 +12,24 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Briefcase, LayoutDashboard, Search, Settings, Users, Route, Image as ImageIcon, Upload } from "lucide-react";
+import { 
+  PlusCircle, 
+  Briefcase, 
+  LayoutDashboard, 
+  Search, 
+  Settings, 
+  Users, 
+  Route, 
+  Image as ImageIcon, 
+  Upload,
+  LogOut,
+  User
+} from "lucide-react";
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/auth-context";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function AppSidebar() {
   const navigate = useNavigate();
@@ -25,6 +38,7 @@ export function AppSidebar() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -73,6 +87,11 @@ export function AppSidebar() {
     });
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
   const menuItems = [
     {
       label: "Dashboard",
@@ -117,15 +136,17 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <div className="px-3 py-2 mb-2">
-          <Button 
-            className="w-full justify-start" 
-            onClick={() => navigate("/projects/new")}
-          >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Project
-          </Button>
-        </div>
+        {user && (
+          <div className="px-3 py-2 mb-2">
+            <Button 
+              className="w-full justify-start" 
+              onClick={() => navigate("/projects/new")}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New Project
+            </Button>
+          </div>
+        )}
 
         <SidebarGroup>
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
@@ -180,6 +201,51 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {user && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Account</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/profile")}>
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => navigate("/profile")}
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={handleSignOut}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Sign Out</span>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+              
+              {user && (
+                <div className="px-3 py-2 mt-2">
+                  <div className="flex items-center space-x-2 p-2 bg-muted/50 rounded">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback>{user.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-xs truncate">
+                      {user.email}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       {/* Logo Upload Dialog */}

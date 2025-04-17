@@ -8,7 +8,6 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -30,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === 'SIGNED_IN') {
           toast({
             title: "Signed in successfully",
-            description: `Welcome${currentSession?.user?.user_metadata?.full_name ? ', ' + currentSession.user.user_metadata.full_name : ''}!`,
+            description: `Welcome${currentSession?.user?.email ? ', ' + currentSession.user.email : ''}!`,
           });
         }
         
@@ -55,28 +54,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [toast]);
 
-  async function signInWithGoogle() {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        }
-      });
-      
-      if (error) {
-        throw error;
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to sign in';
-      toast({
-        title: "Authentication failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
-  }
-
   async function signOut() {
     try {
       const { error } = await supabase.auth.signOut();
@@ -95,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
