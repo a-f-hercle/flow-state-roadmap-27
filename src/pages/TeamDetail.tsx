@@ -187,6 +187,10 @@ export default function TeamDetail() {
           throw error;
         }
         
+        if (!newMemberId) {
+          throw new Error("Failed to get member ID from RPC function");
+        }
+        
         memberId = newMemberId;
       } else {
         const { data: newMember, error } = await supabase
@@ -216,7 +220,14 @@ export default function TeamDetail() {
         .eq('id', memberId)
         .single();
       
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error("Error fetching new team member:", fetchError);
+        throw fetchError;
+      }
+      
+      if (!memberData) {
+        throw new Error("Failed to fetch newly created member");
+      }
       
       const newTeamMember: TeamMember = {
         id: memberData.id,
