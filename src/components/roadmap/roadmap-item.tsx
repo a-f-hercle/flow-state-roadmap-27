@@ -1,10 +1,20 @@
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Project } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Clock, GripHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { useProjects } from "@/context/project-context";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 
 interface RoadmapItemProps {
   project: Project;
@@ -33,6 +43,7 @@ export function RoadmapItem({
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [position, setPosition] = useState({ left: leftPos, top: topPos });
   const [itemWidth, setItemWidth] = useState(width);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const initialDateRef = useRef({ startDate: project.startDate, endDate: project.endDate });
@@ -250,52 +261,90 @@ export function RoadmapItem({
     }
   };
 
+  // Handle key press for deletion (Del key)
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Delete' && document.activeElement === itemRef.current) {
+      e.preventDefault();
+      setShowDeleteDialog(true);
+    }
+  };
+
+  // Handle deletion confirmation
+  const handleConfirmDelete = () => {
+    const { updateProject } = useProjects();
+    updateProject({
+      ...project,
+      isDeleted: true
+    });
+    setShowDeleteDialog(false);
+  };
+
   return (
-    <div
-      ref={itemRef}
-      className={`absolute ${teamColor} ${statusStyle} border rounded-md p-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${isDragging || isResizing ? 'opacity-75 z-50' : ''}`}
-      style={{ 
-        left: isDragging ? position.left : leftPos, 
-        width: isResizing ? itemWidth : width,
-        top: isDragging ? position.top : topPos
-      }}
-      onClick={handleClick}
-      onMouseDown={handleMouseDown}
-      onContextMenu={(e) => e.preventDefault()} // Prevent context menu on right click
-    >
-      <div className="flex items-center justify-between mb-1">
-        <div className="text-sm font-medium truncate">{project.title}</div>
-        <Badge 
-          className={`text-[10px] h-4 py-0 ml-1 ${
-            project.status === 'completed' ? 'bg-green-500' : 
-            project.status === 'in-progress' ? 'bg-blue-500' : 
-            project.status === 'blocked' ? 'bg-red-500' : 'bg-amber-500'
-          }`}
-        >
-          {getStatusLabel(project.status)}
-        </Badge>
-      </div>
-      <div className="flex items-center text-xs text-muted-foreground">
-        <Clock className="h-3 w-3 mr-1" />
-        <span>
-          {formatShortDate(project.startDate!)} - {formatShortDate(project.endDate!)}
-        </span>
-      </div>
-      
-      {/* Resize handle */}
-      <div 
-        className="resize-handle absolute right-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-ew-resize hover:bg-black/10 dark:hover:bg-white/10 rounded-r-md"
-        onMouseDown={handleResizeStart}
+    <>
+      <div
+        ref={itemRef}
+        className={`absolute ${teamColor} ${statusStyle} border rounded-md p-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${isDragging || isResizing ? 'opacity-75 z-50' : ''}`}
+        style={{ 
+          left: isDragging ? position.left : leftPos, 
+          width: isResizing ? itemWidth : width,
+          top: isDragging ? position.top : topPos
+        }}
+        onClick={handleClick}
+        onMouseDown={handleMouseDown}
+        onContextMenu={(e) => e.preventDefault()} // Prevent context menu on right click
+        onKeyDown={handleKeyDown}
+        tabIndex={0} // Make the element focusable for keyboard events
       >
-        <GripHorizontal className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-sm font-medium truncate">{project.title}</div>
+          <Badge 
+            className={`text-[10px] h-4 py-0 ml-1 ${
+              project.status === 'completed' ? 'bg-green-500' : 
+              project.status === 'in-progress' ? 'bg-blue-500' : 
+              project.status === 'blocked' ? 'bg-red-500' : 'bg-amber-500'
+            }`}
+          >
+            {getStatusLabel(project.status)}
+          </Badge>
+        </div>
+        <div className="flex items-center text-xs text-muted-foreground">
+          <Clock className="h-3 w-3 mr-1" />
+          <span>
+            {formatShortDate(project.startDate!)} - {formatShortDate(project.endDate!)}
+          </span>
+        </div>
+        
+        {/* Resize handle */}
+        <div 
+          className="resize-handle absolute right-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-ew-resize hover:bg-black/10 dark:hover:bg-white/10 rounded-r-md"
+          onMouseDown={handleResizeStart}
+        >
+          <GripHorizontal className="h-4 w-4 text-muted-foreground" />
+        </div>
+        
+        {/* Drag helper tooltip */}
+        {isDragging && (
+          <div className="absolute -top-8 left-0 bg-black text-white text-xs px-2 py-1 rounded">
+            Dragging...
+          </div>
+        )}
       </div>
       
-      {/* Drag helper tooltip */}
-      {isDragging && (
-        <div className="absolute -top-8 left-0 bg-black text-white text-xs px-2 py-1 rounded">
-          Dragging...
-        </div>
-      )}
-    </div>
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will move the project "{project.title}" to the trash. You can restore it later from the trash bin.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

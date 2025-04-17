@@ -1,19 +1,37 @@
-
 import { useState, useMemo, useCallback } from "react";
 import { 
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardDescription
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock } from "lucide-react";
+import { Clock, Trash2, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useProjects } from "@/context/project-context";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { RoadmapItem } from "./roadmap-item";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
+import { Project } from "@/types";
 
 const teamColors = {
   "Tech Trading": "bg-indigo-100 border-indigo-300 hover:bg-indigo-200",
@@ -34,18 +52,36 @@ const statusStyles = {
 export function ProductRoadmap() {
   const navigate = useNavigate();
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
-  const { projects } = useProjects();
+  const { projects, updateProject } = useProjects();
   const [isDragging, setIsDragging] = useState(false);
+  const [showTrashBin, setShowTrashBin] = useState(false);
+  const [projectToRestore, setProjectToRestore] = useState<Project | null>(null);
+  const [projectToPermanentDelete, setProjectToPermanentDelete] = useState<Project | null>(null);
   
   const roadmapProjects = useMemo(() => {
-    return projects.map(project => {
-      return {
-        ...project,
-        startDate: project.startDate || new Date(),
-        endDate: project.endDate || new Date(new Date().setMonth(new Date().getMonth() + 1)),
-        status: project.status || 'planned'
-      };
-    });
+    return projects
+      .filter(project => !project.isDeleted) // Only show non-deleted projects
+      .map(project => {
+        return {
+          ...project,
+          startDate: project.startDate || new Date(),
+          endDate: project.endDate || new Date(new Date().setMonth(new Date().getMonth() + 1)),
+          status: project.status || 'planned'
+        };
+      });
+  }, [projects]);
+  
+  const deletedProjects = useMemo(() => {
+    return projects
+      .filter(project => project.isDeleted)
+      .map(project => {
+        return {
+          ...project,
+          startDate: project.startDate || new Date(),
+          endDate: project.endDate || new Date(new Date().setMonth(new Date().getMonth() + 1)),
+          status: project.status || 'planned'
+        };
+      });
   }, [projects]);
   
   const projectsByTeam = useMemo(() => {
@@ -91,6 +127,41 @@ export function ProductRoadmap() {
       setIsDragging(false);
     }
   }, [isDragging]);
+
+  const handleTrashBinToggle = () => {
+    setShowTrashBin(!showTrashBin);
+  };
+
+  const handleRestoreProject = (project: Project) => {
+    setProjectToRestore(project);
+  };
+
+  const confirmRestore = () => {
+    if (projectToRestore) {
+      updateProject({
+        ...projectToRestore,
+        isDeleted: false
+      });
+      toast.success(`Project "${projectToRestore.title}" has been restored`);
+      setProjectToRestore(null);
+    }
+  };
+
+  const handlePermanentDelete = (project: Project) => {
+    setProjectToPermanentDelete(project);
+  };
+
+  const confirmPermanentDelete = () => {
+    if (projectToPermanentDelete) {
+      // In a real application, you would make an API call to permanently delete
+      // For now, we'll just keep it marked as deleted since we don't have a true delete method
+      toast.success(`Project "${projectToPermanentDelete.title}" has been permanently deleted`);
+      setProjectToPermanentDelete(null);
+      
+      // Note: In a real app with a backend, you would call a method to permanently remove the project
+      // For now, we'll just close the dialog
+    }
+  };
 
   const getProjectPositionAndRows = (team: string) => {
     const projects = projectsByTeam[team];
@@ -171,11 +242,25 @@ export function ProductRoadmap() {
             <em>Tip: Right-click or use Alt+click to drag items, click to open details, use the handle on the right to resize</em>
           </p>
         </div>
-        <Button 
-          onClick={() => navigate("/projects/new?roadmap=true")}
-        >
-          Add to Roadmap
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            size="icon"
+            onClick={handleTrashBinToggle}
+            title="View trash bin"
+            className="relative"
+          >
+            <Trash2 className="h-4 w-4" />
+            {deletedProjects.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                {deletedProjects.length}
+              </span>
+            )}
+          </Button>
+          <Button onClick={() => navigate("/projects/new?roadmap=true")}>
+            Add to Roadmap
+          </Button>
+        </div>
       </div>
       
       <div className="flex flex-wrap gap-2">
@@ -294,6 +379,99 @@ export function ProductRoadmap() {
           <span className="text-sm">Blocked</span>
         </div>
       </div>
+      
+      {/* Trash Bin Dialog */}
+      <Dialog open={showTrashBin} onOpenChange={setShowTrashBin}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Trash Bin</DialogTitle>
+            <DialogDescription>
+              Projects that have been deleted. You can restore them or delete them permanently.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {deletedProjects.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <p>No deleted projects found</p>
+            </div>
+          ) : (
+            <div className="space-y-4 mt-4">
+              {deletedProjects.map(project => (
+                <div 
+                  key={project.id} 
+                  className="flex items-center justify-between p-4 border rounded-md hover:bg-muted/50"
+                >
+                  <div>
+                    <h3 className="font-medium">{project.title}</h3>
+                    <div className="flex items-center text-sm text-muted-foreground mt-1">
+                      <Badge className="mr-2">{project.team}</Badge>
+                      <Clock className="h-3 w-3 mr-1" />
+                      <span>
+                        {format(new Date(project.startDate!), "MMM d")} - {format(new Date(project.endDate!), "MMM d")}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleRestoreProject(project)}
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Restore
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => handlePermanentDelete(project)}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete Forever
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Restore Confirmation Dialog */}
+      <AlertDialog open={!!projectToRestore} onOpenChange={() => projectToRestore && setProjectToRestore(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {projectToRestore && `This will restore the project "${projectToRestore.title}" back to the roadmap.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRestore}>Restore</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Permanent Delete Confirmation Dialog */}
+      <AlertDialog open={!!projectToPermanentDelete} onOpenChange={() => projectToPermanentDelete && setProjectToPermanentDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Permanently delete project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {projectToPermanentDelete && `This will permanently delete the project "${projectToPermanentDelete.title}". This action cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              variant="destructive"
+              onClick={confirmPermanentDelete}
+            >
+              Delete Forever
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

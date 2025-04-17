@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { Project, ProjectPhase, Review, ReviewStatus, HistoryAction } from '@/types';
 import { mockProjects } from '@/data/mock-data';
@@ -18,6 +17,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>(
     mockProjects.map(project => ({
       ...project,
+      isDeleted: false, // Add isDeleted flag to all projects
       history: project.history || [
         {
           id: '1',
@@ -65,6 +65,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       id: Date.now().toString(),
       createdAt: now,
       updatedAt: now,
+      isDeleted: false, // Initialize new projects as not deleted
       history: [
         {
           id: '1',
@@ -87,6 +88,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         if (project.id === updatedProject.id) {
           // Track changes for history
           const changedFields: {field: string, previous: any, new: any}[] = [];
+          
+          // Check for isDeleted status change
+          if (project.isDeleted !== updatedProject.isDeleted) {
+            changedFields.push({
+              field: 'isDeleted',
+              previous: project.isDeleted,
+              new: updatedProject.isDeleted
+            });
+          }
           
           // Check timeline changes
           if (project.startDate?.getTime() !== updatedProject.startDate?.getTime()) {
@@ -142,13 +152,17 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           let projectWithHistory = { ...updatedProject, updatedAt: new Date() };
           
           changedFields.forEach(change => {
-            const action = 
-              (change.field === 'startDate' || change.field === 'endDate') 
-                ? 'timeline-change' 
-                : (change.field === 'currentPhase') 
-                  ? 'phase-change' 
-                  : 'characteristic-change';
-                  
+            let action: HistoryAction = 'characteristic-change';
+            
+            // Determine the appropriate action type
+            if (change.field === 'isDeleted') {
+              action = change.new ? 'deleted' : 'restored';
+            } else if (change.field === 'startDate' || change.field === 'endDate') {
+              action = 'timeline-change';
+            } else if (change.field === 'currentPhase') {
+              action = 'phase-change';
+            }
+            
             projectWithHistory = addHistoryEntry(
               projectWithHistory, 
               action,
@@ -156,7 +170,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
                 field: change.field,
                 previousValue: change.previous,
                 newValue: change.new,
-                description: `Changed ${change.field} from "${change.previous}" to "${change.new}"`
+                description: action === 'deleted' 
+                  ? 'Project moved to trash' 
+                  : action === 'restored' 
+                  ? 'Project restored from trash' 
+                  : `Changed ${change.field} from "${change.previous}" to "${change.new}"`
               },
               comment // Pass the comment to the history entry
             );
