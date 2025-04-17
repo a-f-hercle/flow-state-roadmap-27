@@ -13,13 +13,10 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Briefcase, LayoutDashboard, Search, Settings, Users, Route, Image as ImageIcon, Upload, LogOut, User } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { PlusCircle, Briefcase, LayoutDashboard, Search, Settings, Users, Route, Image as ImageIcon, Upload } from "lucide-react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/context/auth-context"; 
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export function AppSidebar() {
   const navigate = useNavigate();
@@ -28,7 +25,6 @@ export function AppSidebar() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { user, signOut } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -77,11 +73,6 @@ export function AppSidebar() {
     });
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/auth");
-  };
-
   const menuItems = [
     {
       label: "Dashboard",
@@ -126,49 +117,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* User profile section */}
-        {user && (
-          <div className="px-3 py-2 mb-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start p-2">
-                  <Avatar className="h-8 w-8 mr-2">
-                    <AvatarImage src={user.user_metadata.avatar_url} />
-                    <AvatarFallback>
-                      {user.user_metadata.full_name
-                        ? user.user_metadata.full_name.split(" ")
-                          .map(n => n[0])
-                          .join("")
-                          .toUpperCase()
-                        : "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 overflow-hidden text-left">
-                    <p className="text-sm font-medium truncate">
-                      {user.user_metadata.full_name || user.email}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {user.email}
-                    </p>
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuItem onClick={() => navigate('/profile')}>
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-
-        <div className="px-3 py-2">
+        <div className="px-3 py-2 mb-2">
           <Button 
             className="w-full justify-start" 
             onClick={() => navigate("/projects/new")}
@@ -214,17 +163,6 @@ export function AppSidebar() {
                   >
                     <Search className="mr-2 h-4 w-4" />
                     <span>Search</span>
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/profile")}>
-                  <div 
-                    className="flex items-center cursor-pointer"
-                    onClick={() => navigate("/profile")}
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    <span>My Profile</span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
