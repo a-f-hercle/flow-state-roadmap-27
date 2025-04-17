@@ -170,7 +170,7 @@ export default function TeamDetail() {
       console.log("Adding team member with data:", data);
       console.log("Team name:", teamName);
       
-      let memberId: string;
+      let memberId: string | undefined;
       
       if (bypassAuth) {
         const { data: newMember, error } = await supabase
@@ -204,6 +204,10 @@ export default function TeamDetail() {
         if (error) throw error;
         
         memberId = newMember.id;
+      }
+      
+      if (!memberId) {
+        throw new Error("Failed to get member ID");
       }
       
       const { data: memberData, error: fetchError } = await supabase
