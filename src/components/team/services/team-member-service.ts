@@ -27,6 +27,25 @@ export const addTeamMember = async (
 };
 
 /**
+ * Extract a display name from an email address
+ */
+export const getDisplayNameFromEmail = (email: string): string => {
+  if (!email || email === "") return "User";
+  
+  // Get part before @ symbol
+  const namePart = email.split("@")[0];
+  
+  // Convert dots and underscores to spaces
+  const nameWithSpaces = namePart.replace(/[._]/g, " ");
+  
+  // Capitalize each word
+  return nameWithSpaces
+    .split(" ")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+/**
  * Mock implementation - no longer needs database access
  */
 export const fetchTeamMembers = async (teamName: string): Promise<TeamMember[]> => {

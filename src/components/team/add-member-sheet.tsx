@@ -35,7 +35,11 @@ export const AddMemberSheet = ({
     setIsSubmitting(true);
     
     try {
-      const newTeamMember = await addTeamMember(teamName, data);
+      // The data object now matches what addTeamMember expects
+      const newTeamMember = await addTeamMember(teamName, {
+        name: data.name,
+        role: data.role
+      });
       
       setTeamMembers(prev => [...prev, newTeamMember]);
       onOpenChange(false);
