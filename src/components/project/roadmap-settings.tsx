@@ -1,4 +1,3 @@
-
 import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,17 +5,17 @@ import { UseFormReturn } from "react-hook-form";
 import { ProjectFormValues } from "./types/project-form";
 
 interface RoadmapSettingsProps {
-  form: UseFormReturn<ProjectFormValues>;
+  control: Control<ProjectFormValues>;
 }
 
-export function RoadmapSettings({ form }: RoadmapSettingsProps) {
+export function RoadmapSettings({ control }: RoadmapSettingsProps) {
   return (
     <div className="space-y-4 border rounded-md p-4 bg-muted/10">
       <h3 className="text-sm font-medium">Roadmap Settings</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
-          control={form.control}
+          control={control}
           name="startDate"
           render={({ field }) => (
             <FormItem>
@@ -29,7 +28,7 @@ export function RoadmapSettings({ form }: RoadmapSettingsProps) {
         />
         
         <FormField
-          control={form.control}
+          control={control}
           name="endDate"
           render={({ field }) => (
             <FormItem>
@@ -44,7 +43,7 @@ export function RoadmapSettings({ form }: RoadmapSettingsProps) {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
-          control={form.control}
+          control={control}
           name="status"
           render={({ field }) => (
             <FormItem>
@@ -67,7 +66,7 @@ export function RoadmapSettings({ form }: RoadmapSettingsProps) {
         />
         
         <FormField
-          control={form.control}
+          control={control}
           name="category"
           render={({ field }) => (
             <FormItem>

@@ -5,7 +5,7 @@ import { mockProjects } from '@/data/mock-data';
 interface ProjectContextType {
   projects: Project[];
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateProject: (project: Project, comment?: string) => void; // Added comment parameter
+  updateProject: (project: Project, comment?: string) => void;
   updatePhase: (projectId: string, phase: ProjectPhase, data: Partial<Project['phases'][ProjectPhase]>) => void;
   updateReview: (projectId: string, phase: ProjectPhase, reviewerId: string, status: ReviewStatus, feedback?: string) => void;
   getProject: (id: string) => Project | undefined;
@@ -17,7 +17,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>(
     mockProjects.map(project => ({
       ...project,
-      isDeleted: false, // Add isDeleted flag to all projects
+      isDeleted: false,
       history: project.history || [
         {
           id: '1',
@@ -41,14 +41,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       newValue?: any;
       description?: string;
     },
-    comment?: string // Added comment parameter
+    comment?: string
   ) => {
     const historyEntry = {
       id: Date.now().toString(),
       timestamp: new Date(),
       action,
-      user: 'Current User', // In a real app, this would come from auth context
-      comment, // Add comment to the history entry if provided
+      user: 'Current User',
+      comment,
       details
     };
 
@@ -65,7 +65,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       id: Date.now().toString(),
       createdAt: now,
       updatedAt: now,
-      isDeleted: false, // Initialize new projects as not deleted
+      isDeleted: false,
       history: [
         {
           id: '1',
@@ -82,14 +82,12 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setProjects([...projects, newProject]);
   };
 
-  const updateProject = (updatedProject: Project, comment?: string) => { // Added comment parameter
+  const updateProject = (updatedProject: Project, comment?: string) => {
     setProjects(
       projects.map((project) => {
         if (project.id === updatedProject.id) {
-          // Track changes for history
           const changedFields: {field: string, previous: any, new: any}[] = [];
           
-          // Check for isDeleted status change
           if (project.isDeleted !== updatedProject.isDeleted) {
             changedFields.push({
               field: 'isDeleted',
@@ -98,7 +96,6 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             });
           }
           
-          // Check timeline changes
           if (project.startDate?.getTime() !== updatedProject.startDate?.getTime()) {
             changedFields.push({
               field: 'startDate',
@@ -115,7 +112,6 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             });
           }
           
-          // Check other characteristic changes
           if (project.status !== updatedProject.status) {
             changedFields.push({
               field: 'status',
@@ -148,13 +144,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             });
           }
           
-          // Create appropriate history entries
           let projectWithHistory = { ...updatedProject, updatedAt: new Date() };
           
           changedFields.forEach(change => {
             let action: HistoryAction = 'characteristic-change';
             
-            // Determine the appropriate action type
             if (change.field === 'isDeleted') {
               action = change.new ? 'deleted' : 'restored';
             } else if (change.field === 'startDate' || change.field === 'endDate') {
@@ -176,11 +170,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
                   ? 'Project restored from trash' 
                   : `Changed ${change.field} from "${change.previous}" to "${change.new}"`
               },
-              comment // Pass the comment to the history entry
+              comment
             );
           });
           
-          // If there are no changes but there's a comment, create a generic updated entry
           if (changedFields.length === 0 && comment) {
             projectWithHistory = addHistoryEntry(
               projectWithHistory,
@@ -228,7 +221,6 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             currentPhase: nextPhase || project.currentPhase
           };
           
-          // Add history for phase status change
           updatedProject = addHistoryEntry(
             updatedProject,
             'updated',
@@ -240,7 +232,6 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             }
           );
           
-          // Add history for phase change if applicable
           if (phaseChanged) {
             updatedProject = addHistoryEntry(
               updatedProject,
@@ -259,6 +250,55 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         return project;
       })
     );
+  };
+
+  const checkAndProgressPhase = (projectId: string, phase: ProjectPhase) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project || !project.phases[phase]?.review) return;
+
+    const review = project.phases[phase].review;
+    const allReviewers = review?.reviewers || [];
+    const allApproved = allReviewers.every(reviewer => reviewer.status === 'approved');
+
+    if (allApproved) {
+      if ((phase === 'build' || phase === 'release') && project.owner_id) {
+        const ownerReview = allReviewers.find(r => r.id === project.owner_id);
+        if (!ownerReview?.status || ownerReview.status !== 'approved') return;
+      }
+
+      const phases: ProjectPhase[] = ['proposal', 'build', 'release', 'results'];
+      const currentIndex = phases.indexOf(phase);
+      
+      if (currentIndex < phases.length - 1) {
+        const nextPhase = phases[currentIndex + 1];
+        const updatedProject = {
+          ...project,
+          currentPhase: nextPhase,
+          phases: {
+            ...project.phases,
+            [phase]: {
+              ...project.phases[phase],
+              status: 'completed' as const,
+              endDate: new Date(),
+            },
+            [nextPhase]: {
+              ...project.phases[nextPhase],
+              status: 'in-progress' as const,
+              startDate: new Date(),
+              review: {
+                id: Date.now().toString(),
+                type: 'OK1',
+                reviewers: nextPhase === 'build' || nextPhase === 'release' ? 
+                  [{ id: project.owner_id!, status: 'pending' }] :
+                  project.approvers?.map(id => ({ id, status: 'pending' as const })) || []
+              }
+            }
+          }
+        };
+
+        updateProject(updatedProject, `Automatically progressed from ${phase} to ${nextPhase} phase`);
+      }
+    }
   };
 
   const updateReview = (
@@ -287,24 +327,21 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
                 : reviewer
           );
 
-          const updatedPhases = {
-            ...project.phases,
-            [phase]: {
-              ...project.phases[phase],
-              review: {
-                ...(project.phases[phase]?.review as Review),
-                reviewers: updatedReviewers,
-              },
-            },
-          };
-
           let updatedProject = {
             ...project,
-            phases: updatedPhases,
+            phases: {
+              ...project.phases,
+              [phase]: {
+                ...project.phases[phase],
+                review: {
+                  ...(project.phases[phase]?.review as Review),
+                  reviewers: updatedReviewers,
+                },
+              },
+            },
             updatedAt: new Date(),
           };
           
-          // Add history for review update
           updatedProject = addHistoryEntry(
             updatedProject,
             'updated',
@@ -316,6 +353,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
                 (feedback ? ` with feedback: "${feedback}"` : '')
             }
           );
+
+          if (status === 'approved') {
+            setTimeout(() => checkAndProgressPhase(projectId, phase), 0);
+          }
 
           return updatedProject;
         }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useProjects } from "@/context/project-context";
 import { Project } from "@/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhaseBadge } from "@/components/ui/phase-badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { TeamMember } from "@/components/team/types/team-member";
 
 type EditProjectDialogProps = {
   open: boolean;
@@ -28,7 +29,7 @@ type EditProjectDialogProps = {
 export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogProps) {
   const { updateProject } = useProjects();
   const [isRoadmapProject, setIsRoadmapProject] = useState<boolean>(!!project.displayOnRoadmap);
-  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [activeTab, setActiveTab] = useState("general");
   const [nextPhase, setNextPhase] = useState<string | null>(null);
   const [availableTeams] = useState<string[]>([
@@ -73,12 +74,24 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
   useEffect(() => {
     const loadTeamMembers = async () => {
       if (project.team) {
-        const members = await fetchTeamMembers(project.team);
-        setTeamMembers(members);
+        try {
+          const members = await fetchTeamMembers(project.team);
+          setTeamMembers(members);
+        } catch (error) {
+          console.error('Failed to load team members:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load team members",
+            variant: "destructive"
+          });
+        }
       }
     };
-    loadTeamMembers();
-  }, [project.team]);
+    
+    if (open) {
+      loadTeamMembers();
+    }
+  }, [project.team, open]);
 
   useEffect(() => {
     if (activeTab === "phase" && !nextPhase && nextAvailablePhase) {
@@ -169,6 +182,14 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
     setNextPhase(null);
   };
 
+  const teamMemberOptions = useMemo(() => 
+    teamMembers.map(member => ({
+      value: member.id,
+      label: `${member.name} (${member.role})`
+    })), 
+    [teamMembers]
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
@@ -257,10 +278,7 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
                             <MultiSelect
                               value={field.value || []}
                               onChange={field.onChange}
-                              options={teamMembers.map(member => ({
-                                value: member.id,
-                                label: member.name
-                              }))}
+                              options={teamMemberOptions}
                               placeholder="Select developers"
                             />
                             <FormMessage />
