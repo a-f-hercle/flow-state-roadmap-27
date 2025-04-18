@@ -1,14 +1,17 @@
+
 import { ProjectPhase, Project } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { CheckCircle, Clock, Circle, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface PhaseTimelineProps {
   project: Project;
+  teamMembers?: any[];
 }
 
-export function PhaseTimeline({ project }: PhaseTimelineProps) {
+export function PhaseTimeline({ project, teamMembers = [] }: PhaseTimelineProps) {
   const phases: ProjectPhase[] = ["proposal", "build", "release", "results"];
   
   const phaseLabels: Record<ProjectPhase, string> = {
@@ -54,6 +57,56 @@ export function PhaseTimeline({ project }: PhaseTimelineProps) {
   };
 
   const currentPhaseIndex = phases.indexOf(project.currentPhase);
+  
+  const findTeamMember = (memberId: string) => {
+    return teamMembers.find(member => member.id === memberId);
+  };
+  
+  const getPhaseAssignees = (phase: ProjectPhase) => {
+    if (phase === 'proposal' && project.approvers?.length) {
+      return (
+        <div className="mt-2 flex -space-x-2 overflow-hidden">
+          {project.approvers.slice(0, 5).map((approverId) => {
+            const member = findTeamMember(approverId);
+            return member ? (
+              <Avatar key={approverId} className="h-6 w-6 border-2 border-background">
+                <AvatarImage src={member.avatar_url} />
+                <AvatarFallback>{member.name?.[0]}</AvatarFallback>
+              </Avatar>
+            ) : null;
+          })}
+          {project.approvers.length > 5 && (
+            <div className="flex items-center justify-center h-6 w-6 bg-muted text-xs rounded-full border-2 border-background">
+              +{project.approvers.length - 5}
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    if (phase === 'build' && project.builders?.length) {
+      return (
+        <div className="mt-2 flex -space-x-2 overflow-hidden">
+          {project.builders.slice(0, 5).map((builderId) => {
+            const member = findTeamMember(builderId);
+            return member ? (
+              <Avatar key={builderId} className="h-6 w-6 border-2 border-background">
+                <AvatarImage src={member.avatar_url} />
+                <AvatarFallback>{member.name?.[0]}</AvatarFallback>
+              </Avatar>
+            ) : null;
+          })}
+          {project.builders.length > 5 && (
+            <div className="flex items-center justify-center h-6 w-6 bg-muted text-xs rounded-full border-2 border-background">
+              +{project.builders.length - 5}
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    return null;
+  };
 
   return (
     <div className="space-y-2">
@@ -80,6 +133,7 @@ export function PhaseTimeline({ project }: PhaseTimelineProps) {
               <div 
                 className={cn(
                   "absolute left-0 top-1 h-8 w-8 rounded-full border-4 border-background flex items-center justify-center",
+                  index === currentPhaseIndex ? "ring-2 ring-ring ring-offset-2" : "",
                   index <= currentPhaseIndex ? phaseColors[phase] : "bg-secondary"
                 )}
               >
@@ -88,7 +142,17 @@ export function PhaseTimeline({ project }: PhaseTimelineProps) {
               
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-sm">{phaseLabels[phase]}</h4>
+                  <h4 className={cn(
+                    "font-medium text-sm",
+                    index === currentPhaseIndex ? "font-bold" : ""
+                  )}>
+                    {phaseLabels[phase]}
+                    {index === currentPhaseIndex && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                        Current
+                      </span>
+                    )}
+                  </h4>
                   <span className="text-xs text-muted-foreground">
                     {getStatusText(phase)}
                   </span>
@@ -97,6 +161,8 @@ export function PhaseTimeline({ project }: PhaseTimelineProps) {
                 {project.phases[phase]?.notes && (
                   <p className="text-sm mt-1">{project.phases[phase]?.notes}</p>
                 )}
+                
+                {getPhaseAssignees(phase)}
                 
                 {project.phases[phase]?.review && (
                   <div className="mt-2 p-2 bg-secondary rounded text-sm">

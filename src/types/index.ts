@@ -12,7 +12,7 @@ export type Reviewer = {
 
 export type Review = {
   id: string;
-  type: 'OK Review';  // Changed from 'OK1' | 'OK2' to just 'OK Review'
+  type: 'OK1';  // Changed back from 'OK Review' to 'OK1' as requested
   reviewers: {
     id: string;
     status: ReviewStatus;

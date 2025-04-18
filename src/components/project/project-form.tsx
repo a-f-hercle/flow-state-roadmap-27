@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { UseFormReturn } from "react-hook-form";
 import { ProjectFormValues } from "./types/project-form";
 import { TeamMember } from "../team/types/team-member";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 interface ProjectFormProps {
   form: UseFormReturn<ProjectFormValues>;
@@ -14,6 +15,7 @@ interface ProjectFormProps {
   availableTeams: string[];
   isRoadmapProject: boolean;
   onRoadmapToggle: (checked: boolean) => void;
+  showPhaseAssignees?: boolean;
 }
 
 export function ProjectForm({ 
@@ -21,7 +23,8 @@ export function ProjectForm({
   teamMembers, 
   availableTeams, 
   isRoadmapProject, 
-  onRoadmapToggle 
+  onRoadmapToggle,
+  showPhaseAssignees = false 
 }: ProjectFormProps) {
   return (
     <div className="space-y-4">
@@ -65,6 +68,9 @@ export function ProjectForm({
                 onValueChange={(value) => {
                   field.onChange(value);
                   form.setValue('owner_id', '');
+                  // Reset approvers and builders when team changes
+                  form.setValue('approvers', []);
+                  form.setValue('builders', []);
                 }}
               >
                 <FormControl>
@@ -110,6 +116,56 @@ export function ProjectForm({
           )}
         />
       </div>
+      
+      {showPhaseAssignees && (
+        <div className="space-y-4 pt-2">
+          <div className="border-l-4 border-blue-500 pl-3 py-1">
+            <h3 className="font-medium">Phase Assignees</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="approvers"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Proposal Phase - Approvers</FormLabel>
+                  <MultiSelect
+                    value={field.value || []}
+                    onChange={field.onChange}
+                    options={teamMembers.map(member => ({
+                      value: member.id,
+                      label: member.name
+                    }))}
+                    placeholder="Select approvers"
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="builders"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Build Phase - Assigned Developers</FormLabel>
+                  <MultiSelect
+                    value={field.value || []}
+                    onChange={field.onChange}
+                    options={teamMembers.map(member => ({
+                      value: member.id,
+                      label: member.name
+                    }))}
+                    placeholder="Select developers"
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+      )}
       
       <FormField
         control={form.control}

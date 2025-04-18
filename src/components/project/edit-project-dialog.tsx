@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { Check, X, MessageCircle } from "lucide-react";
+import { Check, X, MessageCircle, ArrowRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { fetchTeamMembers } from "@/components/team/services/team-member-service";
 import { toast } from "@/components/ui/use-toast";
@@ -15,6 +15,9 @@ import { RoadmapSettings } from "./roadmap-settings";
 import { ProjectFormValues } from "./types/project-form";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PhaseBadge } from "@/components/ui/phase-badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type EditProjectDialogProps = {
   open: boolean;
@@ -26,6 +29,8 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
   const { updateProject } = useProjects();
   const [isRoadmapProject, setIsRoadmapProject] = useState<boolean>(!!project.displayOnRoadmap);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [activeTab, setActiveTab] = useState("general");
+  const [nextPhase, setNextPhase] = useState<string | null>(null);
   const [availableTeams] = useState<string[]>([
     "Tech Trading", 
     "Tech Custody & Banking", 
@@ -34,6 +39,17 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
     "Tech Infrastructure", 
     "Business Operations"
   ]);
+
+  const phaseNames = {
+    proposal: "Proposal",
+    build: "Build",
+    release: "Release",
+    results: "Results"
+  };
+
+  const phases = ["proposal", "build", "release", "results"];
+  const currentPhaseIndex = phases.indexOf(project.currentPhase);
+  const nextAvailablePhase = currentPhaseIndex < phases.length - 1 ? phases[currentPhaseIndex + 1] : null;
 
   const form = useForm<ProjectFormValues>({
     defaultValues: {
@@ -49,6 +65,8 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
       category: project.category,
       comment: "",
       owner_id: project.owner_id || "",
+      approvers: project.approvers || [],
+      builders: project.builders || [],
     },
   });
 
@@ -61,6 +79,13 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
     };
     loadTeamMembers();
   }, [project.team]);
+
+  useEffect(() => {
+    // When switching to the phase tab, automatically focus on next phase if it's not already selected
+    if (activeTab === "phase" && !nextPhase && nextAvailablePhase) {
+      setNextPhase(nextAvailablePhase);
+    }
+  }, [activeTab, nextPhase, nextAvailablePhase]);
 
   const handleSubmit = (values: ProjectFormValues) => {
     const tags = values.tags
@@ -77,6 +102,9 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
       tags,
       displayOnRoadmap: isRoadmapProject,
       updatedAt: new Date(),
+      approvers: values.approvers || [],
+      builders: values.builders || [],
+      owner_id: values.owner_id,
     };
     
     if (isRoadmapProject) {
@@ -100,12 +128,51 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
       delete updatedProject.displayOnRoadmap;
     }
     
+    // If transitioning to a new phase
+    if (nextPhase && nextPhase !== project.currentPhase) {
+      updatedProject.currentPhase = nextPhase as any;
+      
+      // Initialize the new phase if not already present
+      if (!updatedProject.phases[nextPhase]) {
+        updatedProject.phases[nextPhase] = {
+          status: 'not-started',
+          startDate: new Date()
+        };
+      }
+      
+      // Mark the current phase as completed
+      if (updatedProject.phases[project.currentPhase]) {
+        updatedProject.phases[project.currentPhase] = {
+          ...updatedProject.phases[project.currentPhase],
+          status: 'completed',
+          endDate: new Date()
+        };
+      }
+      
+      // Auto set the new phase to in-progress
+      updatedProject.phases[nextPhase] = {
+        ...updatedProject.phases[nextPhase],
+        status: 'in-progress',
+        startDate: new Date()
+      };
+      
+      // Add phase transition to comment if not already provided
+      const transitionComment = `Moved project from ${phaseNames[project.currentPhase]} to ${phaseNames[nextPhase]} phase`;
+      if (!values.comment) {
+        values.comment = transitionComment;
+      }
+    }
+    
     updateProject(updatedProject, values.comment.trim());
     toast({
       title: "Project updated",
-      description: "Your project has been updated successfully.",
+      description: nextPhase && nextPhase !== project.currentPhase 
+        ? `Project moved to ${phaseNames[nextPhase]} phase successfully.` 
+        : "Your project has been updated successfully.",
     });
+    
     setOpen(false);
+    setNextPhase(null); // Reset the phase transition state
   };
 
   return (
@@ -115,54 +182,155 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
           <DialogTitle>Edit Project</DialogTitle>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <ProjectForm 
-              form={form}
-              teamMembers={teamMembers}
-              availableTeams={availableTeams}
-              isRoadmapProject={isRoadmapProject}
-              onRoadmapToggle={setIsRoadmapProject}
-            />
-            
-            {isRoadmapProject && <RoadmapSettings form={form} />}
-            
-            <Separator />
-            
-            <div className="pt-2">
-              <FormField
-                control={form.control}
-                name="comment"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-1">
-                      <MessageCircle className="h-4 w-4" />
-                      Comment about this change (will show in history)
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="What changes are you making and why?" 
-                        className="min-h-[80px]"
-                        {...field} 
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="w-full">
+            <TabsTrigger value="general">General Information</TabsTrigger>
+            <TabsTrigger value="phase">
+              Phase Management
+              <PhaseBadge phase={project.currentPhase} size="sm" className="ml-2" />
+            </TabsTrigger>
+          </TabsList>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-4">
+              <TabsContent value="general">
+                <ProjectForm 
+                  form={form}
+                  teamMembers={teamMembers}
+                  availableTeams={availableTeams}
+                  isRoadmapProject={isRoadmapProject}
+                  onRoadmapToggle={setIsRoadmapProject}
+                  showPhaseAssignees={true}
+                />
+                
+                {isRoadmapProject && <RoadmapSettings form={form} />}
+              </TabsContent>
+              
+              <TabsContent value="phase" className="space-y-4">
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg mb-2">Project Phase Management</h3>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>Current phase:</span>
+                    <PhaseBadge phase={project.currentPhase} size="md" />
+                  </div>
+                </div>
+                
+                <div className="border rounded-md p-4 space-y-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Transition to Next Phase</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Moving to the next phase will mark the current phase as complete and start the new phase.
+                    </p>
+                    
+                    {nextAvailablePhase ? (
+                      <div className="flex items-center gap-3">
+                        <PhaseBadge phase={project.currentPhase} size="sm" />
+                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                        <Select 
+                          value={nextPhase || ""} 
+                          onValueChange={(value) => value ? setNextPhase(value) : setNextPhase(null)}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select next phase" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={nextAvailablePhase}>
+                              {phaseNames[nextAvailablePhase]}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <p className="text-amber-500">
+                        This project is in the final phase and cannot be advanced further.
+                      </p>
+                    )}
+                  </div>
+                  
+                  {nextPhase === 'build' && (
+                    <div className="bg-muted/40 p-4 rounded-md border border-muted">
+                      <h4 className="font-medium mb-2">Build Phase Requirements</h4>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Before moving to the build phase, please assign team members who will be responsible for implementation.
+                      </p>
+                      
+                      <FormField
+                        control={form.control}
+                        name="builders"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Assign Developers for Build Phase</FormLabel>
+                            <MultiSelect
+                              value={field.value || []}
+                              onChange={field.onChange}
+                              options={teamMembers.map(member => ({
+                                value: member.id,
+                                label: member.name
+                              }))}
+                              placeholder="Select developers"
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                <X className="h-4 w-4 mr-1" />
-                Cancel
-              </Button>
-              <Button type="submit">
-                <Check className="h-4 w-4 mr-1" />
-                Save Changes
-              </Button>
-            </div>
-          </form>
-        </Form>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="border rounded-md p-4 space-y-4">
+                  <h4 className="font-medium">Team Member Assignments</h4>
+                  <ProjectForm 
+                    form={form}
+                    teamMembers={teamMembers}
+                    availableTeams={availableTeams}
+                    isRoadmapProject={isRoadmapProject}
+                    onRoadmapToggle={setIsRoadmapProject}
+                    showPhaseAssignees={true}
+                  />
+                </div>
+              </TabsContent>
+              
+              <Separator />
+              
+              <div className="pt-2">
+                <FormField
+                  control={form.control}
+                  name="comment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1">
+                        <MessageCircle className="h-4 w-4" />
+                        Comment about this change (will show in history)
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder={
+                            nextPhase && nextPhase !== project.currentPhase
+                              ? `Moving from ${phaseNames[project.currentPhase]} to ${phaseNames[nextPhase]} phase`
+                              : "What changes are you making and why?"
+                          } 
+                          className="min-h-[80px]"
+                          {...field} 
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  <Check className="h-4 w-4 mr-1" />
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
