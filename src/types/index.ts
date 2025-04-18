@@ -1,4 +1,3 @@
-
 export type ProjectPhase = 'proposal' | 'build' | 'release' | 'results';
 
 export type ReviewStatus = 'pending' | 'approved' | 'rejected';
@@ -21,7 +20,7 @@ export type Review = {
   }[];
 };
 
-export type HistoryAction = 'created' | 'updated' | 'phase-change' | 'timeline-change' | 'characteristic-change';
+export type HistoryAction = 'created' | 'updated' | 'phase-change' | 'timeline-change' | 'characteristic-change' | 'deleted' | 'restored';
 
 export type HistoryEntry = {
   id: string;
@@ -64,6 +63,7 @@ export type Project = {
   displayOnRoadmap?: boolean;
   // History tracking
   history?: HistoryEntry[];
+  isDeleted?: boolean; // Added isDeleted flag
 };
 
 export type TaskCategory = 'feature' | 'bugfix' | 'improvement' | 'refactor' | 'infrastructure' | 'documentation' | 'compliance' | 'security';
