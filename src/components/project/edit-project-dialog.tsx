@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useProjects } from "@/context/project-context";
-import { Project } from "@/types";
+import { Project, ProjectPhase } from "@/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -48,7 +48,7 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
     results: "Results"
   };
 
-  const phases = ["proposal", "build", "release", "results"];
+  const phases: ProjectPhase[] = ['proposal', 'build', 'release', 'results'];
   const currentPhaseIndex = phases.indexOf(project.currentPhase);
   const nextAvailablePhase = currentPhaseIndex < phases.length - 1 ? phases[currentPhaseIndex + 1] : null;
 
@@ -94,10 +94,10 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
   }, [project.team, open]);
 
   useEffect(() => {
-    if (activeTab === "phase" && !nextPhase && nextAvailablePhase) {
-      setNextPhase(nextAvailablePhase);
+    if (activeTab === "phase" && !nextPhase && project.currentPhase !== 'results') {
+      setNextPhase(project.currentPhase);
     }
-  }, [activeTab, nextPhase, nextAvailablePhase]);
+  }, [activeTab, nextPhase, project.currentPhase]);
 
   const handleSubmit = (values: ProjectFormValues) => {
     const tags = values.tags
@@ -237,21 +237,27 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
                       Moving to the next phase will mark the current phase as complete and start the new phase.
                     </p>
                     
-                    {nextAvailablePhase ? (
+                    {project.currentPhase !== 'results' && (
                       <div className="flex items-center gap-3">
                         <PhaseBadge phase={project.currentPhase} size="sm" />
                         <ArrowRight className="h-4 w-4 text-muted-foreground" />
                         <Select 
                           value={nextPhase || ""} 
-                          onValueChange={(value) => value ? setNextPhase(value) : setNextPhase(null)}
+                          onValueChange={(value) => setNextPhase(value as ProjectPhase)}
                         >
                           <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="Select next phase" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={nextAvailablePhase}>
-                              {phaseNames[nextAvailablePhase]}
-                            </SelectItem>
+                            {phases.map((phase) => (
+                              <SelectItem 
+                                key={phase} 
+                                value={phase}
+                                disabled={phases.indexOf(phase) <= phases.indexOf(project.currentPhase)}
+                              >
+                                {phase.charAt(0).toUpperCase() + phase.slice(1)}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

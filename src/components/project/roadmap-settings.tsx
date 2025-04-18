@@ -1,7 +1,8 @@
+
 import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UseFormReturn } from "react-hook-form";
+import { Control } from "react-hook-form";
 import { ProjectFormValues } from "./types/project-form";
 
 interface RoadmapSettingsProps {
