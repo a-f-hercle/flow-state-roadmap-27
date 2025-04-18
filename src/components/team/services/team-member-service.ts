@@ -1,4 +1,3 @@
-
 import { TeamMember } from "../types/team-member";
 
 /**
@@ -95,7 +94,62 @@ const initialTeamMembers: TeamMember[] = [
  * Mock implementation - returns pre-loaded team members for the specified team
  */
 export const fetchTeamMembers = async (teamName: string): Promise<TeamMember[]> => {
-  return initialTeamMembers.filter(member => member.team_name === teamName);
+  // This is mock data for now
+  const mockTeamMembers: TeamMember[] = [
+    {
+      id: '1',
+      name: 'John Doe',
+      role: 'Senior Developer',
+      team_name: teamName,
+      email: 'john.doe@example.com',
+      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=1'
+    },
+    {
+      id: '2',
+      name: 'Jane Smith',
+      role: 'Product Manager',
+      team_name: teamName,
+      email: 'jane.smith@example.com',
+      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=2'
+    },
+    {
+      id: '3',
+      name: 'Mike Johnson',
+      role: 'Tech Lead',
+      team_name: teamName,
+      email: 'mike.johnson@example.com',
+      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=3'
+    },
+    {
+      id: '4',
+      name: 'Sarah Wilson',
+      role: 'Developer',
+      team_name: teamName,
+      email: 'sarah.wilson@example.com',
+      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=4'
+    },
+    {
+      id: '5',
+      name: 'David Brown',
+      role: 'QA Engineer',
+      team_name: teamName,
+      email: 'david.brown@example.com',
+      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=5'
+    },
+    {
+      id: '6',
+      name: 'Emily Taylor',
+      role: 'Designer',
+      team_name: teamName,
+      email: 'emily.taylor@example.com',
+      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=6'
+    },
+  ];
+
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  return mockTeamMembers;
 };
 
 /**
