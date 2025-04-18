@@ -1,10 +1,9 @@
 
 import * as React from "react";
 import { X, Check } from "lucide-react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Command as CommandPrimitive } from "cmdk";
 
 type Option = {
   value: string;
@@ -51,7 +50,6 @@ export function MultiSelect({
     (v) => options.find((option) => option.value === v)?.label || v
   );
 
-  // Make sure we're passing a CommandList to the Command component
   return (
     <Command
       className={cn(
@@ -94,38 +92,40 @@ export function MultiSelect({
           className="flex-1 outline-none bg-transparent min-w-[8rem] min-h-[1.5rem]"
         />
       </div>
-      <div className="relative">
-        {open && (
+      {open && options.length > 0 && (
+        <div className="relative">
           <div className="absolute w-full z-10 top-0 bg-background rounded-md border shadow-md">
-            <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup className="max-h-60 overflow-auto">
-              {options.map((option) => {
-                const isSelected = safeValue.includes(option.value);
-                return (
-                  <CommandItem
-                    key={option.value}
-                    value={option.value}
-                    onSelect={() => handleSelect(option.value)}
-                    className="flex items-center gap-2"
-                  >
-                    <div
-                      className={cn(
-                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
-                        isSelected
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "opacity-50"
-                      )}
+            <CommandList>
+              <CommandEmpty>No results found.</CommandEmpty>
+              <CommandGroup className="max-h-60 overflow-auto">
+                {options.map((option) => {
+                  const isSelected = safeValue.includes(option.value);
+                  return (
+                    <CommandItem
+                      key={option.value}
+                      value={option.value}
+                      onSelect={() => handleSelect(option.value)}
+                      className="flex items-center gap-2"
                     >
-                      {isSelected ? <Check className="h-3 w-3" /> : null}
-                    </div>
-                    {option.label}
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
+                      <div
+                        className={cn(
+                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
+                          isSelected
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "opacity-50"
+                        )}
+                      >
+                        {isSelected ? <Check className="h-3 w-3" /> : null}
+                      </div>
+                      {option.label}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </Command>
   );
 }
