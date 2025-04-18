@@ -52,6 +52,8 @@ const statusStyles = {
 // Row height constant for consistent calculations
 const ROW_HEIGHT = 45;
 const MIN_CONTAINER_HEIGHT = 60;
+// Define the width of the team label column
+const TEAM_LABEL_WIDTH = 160; // 40 * 4 = 160px (w-40)
 
 export function ProductRoadmap() {
   const navigate = useNavigate();
@@ -453,7 +455,6 @@ export function ProductRoadmap() {
           <span className="text-sm">Blocked</span>
         </div>
       </div>
-      
       
       <Dialog open={showTrashBin} onOpenChange={setShowTrashBin}>
         <DialogContent className="max-w-3xl">

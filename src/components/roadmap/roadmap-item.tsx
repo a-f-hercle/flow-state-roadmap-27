@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Project } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -185,7 +184,9 @@ export function RoadmapItem({
     
     const parentRect = timelineRef.current.getBoundingClientRect();
     
-    const newLeft = e.clientX - parentRect.left - dragStartPos.x;
+    // Ensure items are only moved within the timeline grid area, not in the team label column
+    const minLeft = 0; // Restrict to start of the timeline grid (not in team label area)
+    const newLeft = Math.max(minLeft, e.clientX - parentRect.left - dragStartPos.x);
     
     // Calculate new vertical position, allowing it to go outside visible area
     const newTop = e.clientY - parentRect.top - dragStartPos.y;
