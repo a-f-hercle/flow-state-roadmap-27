@@ -129,7 +129,7 @@ export function AppSidebar() {
   const isAdmin = true; 
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarHeader className="flex items-center p-4">
         <div className="flex items-center space-x-2">
           <div 
