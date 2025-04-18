@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { useProjects } from "@/context/project-context";
 import { Project, ProjectPhase } from "@/types";
@@ -218,7 +219,7 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
                   showPhaseAssignees={true}
                 />
                 
-                {isRoadmapProject && <RoadmapSettings form={form} />}
+                {isRoadmapProject && <RoadmapSettings control={form.control} />}
               </TabsContent>
               
               <TabsContent value="phase" className="space-y-4">
@@ -261,7 +262,9 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
                           </SelectContent>
                         </Select>
                       </div>
-                    ) : (
+                    )}
+                    
+                    {project.currentPhase === 'results' && (
                       <p className="text-amber-500">
                         This project is in the final phase and cannot be advanced further.
                       </p>
