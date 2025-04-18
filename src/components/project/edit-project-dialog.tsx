@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { fetchTeamMembers } from "@/components/team/services/team-member-service";
+import { toast } from "@/components/ui/use-toast";
 
 type EditProjectDialogProps = {
   open: boolean;
@@ -39,6 +40,14 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
   const { updateProject } = useProjects();
   const [isRoadmapProject, setIsRoadmapProject] = useState<boolean>(!!project.displayOnRoadmap);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [availableTeams, setAvailableTeams] = useState<string[]>([
+    "Tech Trading", 
+    "Tech Custody & Banking", 
+    "Tech PMS", 
+    "Tech Execution", 
+    "Tech Infrastructure", 
+    "Business Operations"
+  ]);
 
   useEffect(() => {
     const loadTeamMembers = async () => {
@@ -170,7 +179,7 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {teams.map((team) => (
+                        {availableTeams.map((team) => (
                           <SelectItem key={team} value={team}>
                             {team}
                           </SelectItem>

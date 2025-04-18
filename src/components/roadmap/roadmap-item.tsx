@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Project } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -232,10 +233,11 @@ export function RoadmapItem({
     
     const newWidth = Math.max(50, e.clientX - itemRect.left);
     
-    const weekWidth = (parentRect.width - timelineStart) / 52;
+    const TEAM_LABEL_WIDTH = 100;  // Define it again in this context for clarity
+    const weekWidth = (parentRect.width - TEAM_LABEL_WIDTH) / 52;
     const weeks = Math.max(1, Math.round(newWidth / weekWidth));
     const snappedWidth = weeks * weekWidth;
-    const snappedWidthPercent = (snappedWidth / (parentRect.width - timelineStart)) * 100;
+    const snappedWidthPercent = (snappedWidth / (parentRect.width - TEAM_LABEL_WIDTH)) * 100;
     
     setItemWidth(`${Math.max(2, snappedWidthPercent)}%`);
     

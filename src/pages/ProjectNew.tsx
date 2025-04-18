@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjects } from "@/context/project-context";
@@ -44,7 +45,7 @@ export default function ProjectNew() {
           status: 'in-progress',
           review: {
             id: Date.now().toString(),
-            type: 'OK1',
+            type: 'OK Review',
             reviewers: mockReviewers.slice(0, 4).map(reviewer => ({
               id: reviewer.id,
               status: 'pending'
