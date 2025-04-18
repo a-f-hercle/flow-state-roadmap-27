@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProjects } from "@/context/project-context";
 import { Project, ProjectPhase, TaskCategory } from "@/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { toast } from "@/components/ui/use-toast";
 import { useForm } from "react-hook-form";
 import { Check, X, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { fetchTeamMembers } from "@/components/team/services/team-member-service";
 
 type EditProjectDialogProps = {
   open: boolean;
@@ -32,15 +31,25 @@ type ProjectFormValues = {
   endDate?: string;
   status?: string;
   category?: string;
-  comment: string; // Added comment field
+  comment: string;
+  owner_id: string;
 };
 
 export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogProps) {
   const { updateProject } = useProjects();
   const [isRoadmapProject, setIsRoadmapProject] = useState<boolean>(!!project.displayOnRoadmap);
-  
-  const teams = ["Tech Trading", "Tech Custody & Banking", "Tech PMS", "Tech Execution", "Tech Infrastructure", "Business Operations"];
-  
+  const [teamMembers, setTeamMembers] = useState([]);
+
+  useEffect(() => {
+    const loadTeamMembers = async () => {
+      if (project.team) {
+        const members = await fetchTeamMembers(project.team);
+        setTeamMembers(members);
+      }
+    };
+    loadTeamMembers();
+  }, [project.team]);
+
   const form = useForm<ProjectFormValues>({
     defaultValues: {
       title: project.title,
@@ -53,10 +62,11 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
       endDate: project.endDate ? project.endDate.toISOString().split("T")[0] : undefined,
       status: project.status,
       category: project.category,
-      comment: "", // Initialize with empty comment
+      comment: "",
+      owner_id: project.owner_id || "",
     },
   });
-  
+
   const handleSubmit = (values: ProjectFormValues) => {
     const tags = values.tags
       .split(",")
@@ -74,7 +84,6 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
       updatedAt: new Date(),
     };
     
-    // Only add roadmap fields if it's a roadmap project
     if (isRoadmapProject) {
       if (values.startDate) {
         updatedProject.startDate = new Date(values.startDate);
@@ -89,7 +98,6 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
         updatedProject.category = values.category as TaskCategory;
       }
     } else {
-      // Remove roadmap fields if it's not a roadmap project
       delete updatedProject.startDate;
       delete updatedProject.endDate;
       delete updatedProject.status;
@@ -97,14 +105,14 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
       delete updatedProject.displayOnRoadmap;
     }
     
-    updateProject(updatedProject, values.comment.trim()); // Pass the comment to updateProject
+    updateProject(updatedProject, values.comment.trim());
     toast({
       title: "Project updated",
       description: "Your project has been updated successfully.",
     });
     setOpen(false);
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
@@ -151,7 +159,10 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
                     <FormLabel>Team</FormLabel>
                     <Select
                       value={field.value}
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('owner_id', '');
+                      }}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -173,13 +184,27 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
               
               <FormField
                 control={form.control}
-                name="owner"
+                name="owner_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Owner</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
+                    <FormLabel>Project Owner</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an owner" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {teamMembers.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -310,7 +335,6 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
               </div>
             )}
             
-            {/* Add comment section */}
             <Separator />
             <div className="pt-2">
               <FormField

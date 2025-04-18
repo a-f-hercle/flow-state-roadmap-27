@@ -11,7 +11,7 @@ export type Reviewer = {
 
 export type Review = {
   id: string;
-  type: 'OK1' | 'OK2';
+  type: 'OK Review';  // Changed from 'OK1' | 'OK2' to just 'OK Review'
   reviewers: {
     id: string;
     status: ReviewStatus;
@@ -64,6 +64,7 @@ export type Project = {
   // History tracking
   history?: HistoryEntry[];
   isDeleted?: boolean; // Added isDeleted flag
+  owner_id?: string; // Added owner_id field
 };
 
 export type TaskCategory = 'feature' | 'bugfix' | 'improvement' | 'refactor' | 'infrastructure' | 'documentation' | 'compliance' | 'security';
