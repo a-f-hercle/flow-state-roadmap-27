@@ -52,8 +52,8 @@ export function RoadmapItem({
   const isDraggingRef = useRef<boolean>(false);
   const isResizingRef = useRef<boolean>(false);
   const currentRowRef = useRef<number>(0);
+  const TEAM_LABEL_WIDTH = 100; // Assuming this constant is defined in product-roadmap
 
-  // Extract row from topPos for initialization
   useEffect(() => {
     if (topPos) {
       const match = topPos.match(/(\d+)px/);
@@ -184,26 +184,23 @@ export function RoadmapItem({
     
     const parentRect = timelineRef.current.getBoundingClientRect();
     
-    // Ensure items are only moved within the timeline grid area, not in the team label column
-    const minLeft = 0; // Restrict to start of the timeline grid (not in team label area)
-    const newLeft = Math.max(minLeft, e.clientX - parentRect.left - dragStartPos.x);
+    const timelineStart = TEAM_LABEL_WIDTH;
+    const mouseXRelativeToTimeline = e.clientX - parentRect.left - timelineStart;
     
-    // Calculate new vertical position, allowing it to go outside visible area
+    const adjustedLeft = Math.max(0, mouseXRelativeToTimeline);
+    
     const newTop = e.clientY - parentRect.top - dragStartPos.y;
     
-    const weekWidth = parentRect.width / 52;
-    const snapToWeek = Math.round(newLeft / weekWidth) * weekWidth;
-    const leftPercent = (snapToWeek / parentRect.width) * 100 + '%';
+    const weekWidth = (parentRect.width - timelineStart) / 52;
+    const snapToWeek = Math.round(adjustedLeft / weekWidth) * weekWidth;
+    const leftPercent = (snapToWeek / (parentRect.width - timelineStart)) * 100 + '%';
     
     const rowHeight = 45;
-    // Don't cap at container height - allow to move beyond
     const snapToRow = Math.max(0, Math.round(newTop / rowHeight)) * rowHeight + 8;
     const topPx = Math.max(8, snapToRow) + 'px';
     
-    // Calculate which row we're on
     const rowIndex = Math.floor(snapToRow / rowHeight);
     
-    // Notify parent component about row change if the row has changed
     if (onDragMove && currentRowRef.current !== rowIndex) {
       currentRowRef.current = rowIndex;
       onDragMove(rowIndex);
@@ -215,7 +212,7 @@ export function RoadmapItem({
     });
     
     const startDate = new Date(2025, 0, 1);
-    const weekIndex = Math.floor((snapToWeek / parentRect.width) * 52);
+    const weekIndex = Math.floor((snapToWeek / (parentRect.width - timelineStart)) * 52);
     
     const msInWeek = 7 * 24 * 60 * 60 * 1000;
     const newStartDate = new Date(startDate.getTime() + (weekIndex * msInWeek));
@@ -235,10 +232,10 @@ export function RoadmapItem({
     
     const newWidth = Math.max(50, e.clientX - itemRect.left);
     
-    const weekWidth = parentRect.width / 52;
+    const weekWidth = (parentRect.width - timelineStart) / 52;
     const weeks = Math.max(1, Math.round(newWidth / weekWidth));
     const snappedWidth = weeks * weekWidth;
-    const snappedWidthPercent = (snappedWidth / parentRect.width) * 100;
+    const snappedWidthPercent = (snappedWidth / (parentRect.width - timelineStart)) * 100;
     
     setItemWidth(`${Math.max(2, snappedWidthPercent)}%`);
     
@@ -316,7 +313,6 @@ export function RoadmapItem({
         tabIndex={0}
       >
         <div className="p-2 flex flex-col gap-1">
-          {/* Title row with improved visibility */}
           <div className="font-medium text-sm leading-tight w-full mb-1 pr-6">
             {project.title}
           </div>
