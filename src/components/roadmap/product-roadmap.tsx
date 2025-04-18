@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { 
   Card, 
   CardContent, 
@@ -58,6 +58,8 @@ export function ProductRoadmap() {
   const [showTrashBin, setShowTrashBin] = useState(false);
   const [projectToRestore, setProjectToRestore] = useState<Project | null>(null);
   const [projectToPermanentDelete, setProjectToPermanentDelete] = useState<Project | null>(null);
+  const [expandingTeam, setExpandingTeam] = useState<string | null>(null);
+  const teamRefs = useRef<Record<string, HTMLDivElement | null>>({});
   
   const roadmapProjects = useMemo(() => {
     return projects
@@ -127,6 +129,9 @@ export function ProductRoadmap() {
     if (isDragging) {
       setIsDragging(false);
     }
+    
+    // Clear expansion indicator when clicking on timeline
+    setExpandingTeam(null);
   }, [isDragging]);
 
   const handleTrashBinToggle = () => {
@@ -158,6 +163,21 @@ export function ProductRoadmap() {
       setProjectToPermanentDelete(null);
     }
   };
+
+  // Handle item drag move to show expansion indicator
+  const handleDragMove = useCallback((team: string, rowIndex: number) => {
+    // Set the team that needs expansion if the row is beyond current rows
+    const teamRows = getProjectPositionAndRows(team).rows;
+    const maxExistingRow = teamRows.length > 0 
+      ? Math.max(...teamRows.map(row => row.row))
+      : -1;
+    
+    if (rowIndex > maxExistingRow) {
+      setExpandingTeam(team);
+    } else {
+      setExpandingTeam(null);
+    }
+  }, [projectsByTeam]);
 
   const getProjectPositionAndRows = (team: string) => {
     const projects = projectsByTeam[team];
@@ -315,12 +335,19 @@ export function ProductRoadmap() {
                   {filteredTeams.map((team, teamIndex) => {
                     const { rows, containerHeight } = getProjectPositionAndRows(team);
                     return (
-                      <div key={team} className={`flex border-b ${teamIndex === filteredTeams.length - 1 ? 'border-b-0' : ''}`}>
+                      <div 
+                        key={team} 
+                        className={`flex border-b ${teamIndex === filteredTeams.length - 1 ? 'border-b-0' : ''}`}
+                        ref={el => teamRefs.current[team] = el}
+                      >
                         <div className="sticky left-0 w-40 bg-white dark:bg-gray-950 z-10 p-4 flex items-center font-medium border-r">
                           {team}
                         </div>
                         
-                        <div className="flex-1 relative roadmap-timeline" style={{ height: containerHeight }}>
+                        <div 
+                          className={`flex-1 relative roadmap-timeline`} 
+                          style={{ height: containerHeight }}
+                        >
                           <div className="grid grid-cols-12 h-full">
                             {Array.from({ length: 12 }).map((_, i) => (
                               <div key={i} className="border-r last:border-r-0 h-full">
@@ -330,6 +357,11 @@ export function ProductRoadmap() {
                               </div>
                             ))}
                           </div>
+                          
+                          {/* Expansion indicator at the bottom */}
+                          {expandingTeam === team && (
+                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-500 z-20" />
+                          )}
                           
                           <div className="absolute inset-0 pt-2 pb-8">
                             {rows.map(({ project, row, leftPos, width }) => {
@@ -347,6 +379,7 @@ export function ProductRoadmap() {
                                   topPos={topPos}
                                   onMoveStart={handleMoveStart}
                                   onProjectClick={handleProjectClick}
+                                  onDragMove={(rowIndex) => handleDragMove(team, rowIndex)}
                                 />
                               );
                             })}

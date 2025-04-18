@@ -25,6 +25,7 @@ interface RoadmapItemProps {
   topPos: string;
   onMoveStart: () => void;
   onProjectClick: (projectId: string) => void;
+  onDragMove?: (rowIndex: number) => void; // Add callback for drag move
 }
 
 export function RoadmapItem({
@@ -36,6 +37,7 @@ export function RoadmapItem({
   topPos,
   onMoveStart,
   onProjectClick,
+  onDragMove,
 }: RoadmapItemProps) {
   const { updateProject } = useProjects();
   const [isDragging, setIsDragging] = useState(false);
@@ -50,6 +52,7 @@ export function RoadmapItem({
   const mouseDownTimeRef = useRef<number>(0);
   const isDraggingRef = useRef<boolean>(false);
   const isResizingRef = useRef<boolean>(false);
+  const currentRowRef = useRef<number>(0);
 
   const formatShortDate = (date: Date) => {
     return format(date, "MMM d");
@@ -177,8 +180,17 @@ export function RoadmapItem({
     const leftPercent = (snapToWeek / parentRect.width) * 100 + '%';
     
     const rowHeight = 45;
-    const snapToRow = Math.round(newTop / rowHeight) * rowHeight + 8;
+    const snapToRow = Math.max(0, Math.round(newTop / rowHeight)) * rowHeight + 8;
     const topPx = Math.max(8, snapToRow) + 'px';
+    
+    // Calculate which row we're on
+    const rowIndex = Math.floor(snapToRow / rowHeight);
+    
+    // Notify parent component about row change if the row has changed
+    if (onDragMove && currentRowRef.current !== rowIndex) {
+      currentRowRef.current = rowIndex;
+      onDragMove(rowIndex);
+    }
     
     setPosition({
       left: leftPercent,
@@ -225,6 +237,9 @@ export function RoadmapItem({
       setIsDragging(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      
+      // Reset the current row reference
+      currentRowRef.current = 0;
       
       updateProject(project);
     }
@@ -287,7 +302,7 @@ export function RoadmapItem({
         tabIndex={0}
       >
         <div className="p-2 flex flex-col gap-1">
-          {/* Title now gets its own row for better visibility */}
+          {/* Title row with improved visibility */}
           <div className="font-medium text-sm leading-tight w-full mb-1 pr-6">
             {project.title}
           </div>
