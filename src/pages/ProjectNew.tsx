@@ -3,74 +3,20 @@ import { useProjects } from "@/context/project-context";
 import { ProjectFormValues } from "@/components/project/types/project-form";
 import { NewProjectForm } from "@/components/project/new-project-form";
 import { useNavigate } from "react-router-dom";
-import { ProjectPhase, Project, Review, TaskStatus, TaskCategory } from "@/types";
-import { mockReviewers } from "@/data/mock-data";
+import { createProject } from "@/services/projectService";
 
 export default function ProjectNew() {
   const { addProject } = useProjects();
   const navigate = useNavigate();
   
   const handleCreate = (values: ProjectFormValues) => {
-    const tags = values.tags
-      ? values.tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag !== "")
-      : [];
-      
-    const now = new Date();
+    // Use our service to create the project
+    const projectData = createProject(values);
     
-    const initialPhase: ProjectPhase = "proposal";
-    
-    const review: Review = {
-      id: Date.now().toString(),
-      type: "OK1", 
-      reviewers: mockReviewers.map((reviewer) => ({
-        id: reviewer.id,
-        status: "pending",
-      })),
-    };
-    
-    const phases = {
-      [initialPhase]: {
-        startDate: now,
-        status: "in-progress" as const,
-        review,
-      },
-    };
-    
-    const projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> = {
-      title: values.title,
-      description: values.description || "",
-      team: values.team,
-      owner: values.owner || "Unassigned",
-      currentPhase: initialPhase,
-      phases,
-      tags,
-      // Add the new fields
-      owner_id: values.owner_id || "",
-      approvers: values.approvers || [],
-      builders: values.builders || [],
-    };
-    
-    // Add roadmap properties if needed
-    if (values.displayOnRoadmap) {
-      projectData.displayOnRoadmap = true;
-      if (values.startDate) {
-        projectData.startDate = new Date(values.startDate);
-      }
-      if (values.endDate) {
-        projectData.endDate = new Date(values.endDate);
-      }
-      if (values.status) {
-        projectData.status = values.status as TaskStatus;
-      }
-      if (values.category) {
-        projectData.category = values.category as TaskCategory;
-      }
-    }
-    
+    // Add the project to the context
     addProject(projectData);
+    
+    // Navigate to the projects page
     navigate("/projects");
   };
   
