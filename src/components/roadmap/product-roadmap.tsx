@@ -1,5 +1,4 @@
-
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -50,6 +49,10 @@ const statusStyles = {
   "blocked": "border-l-4 border-l-red-500"
 };
 
+// Row height constant for consistent calculations
+const ROW_HEIGHT = 45;
+const MIN_CONTAINER_HEIGHT = 60;
+
 export function ProductRoadmap() {
   const navigate = useNavigate();
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
@@ -59,7 +62,9 @@ export function ProductRoadmap() {
   const [projectToRestore, setProjectToRestore] = useState<Project | null>(null);
   const [projectToPermanentDelete, setProjectToPermanentDelete] = useState<Project | null>(null);
   const [expandingTeam, setExpandingTeam] = useState<string | null>(null);
+  const [teamHeights, setTeamHeights] = useState<Record<string, number>>({});
   const teamRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const timelineRefs = useRef<Record<string, HTMLDivElement | null>>({});
   
   const roadmapProjects = useMemo(() => {
     return projects
@@ -164,24 +169,42 @@ export function ProductRoadmap() {
     }
   };
 
-  // Handle item drag move to show expansion indicator
+  // Handle item drag move to show expansion indicator and expand container if needed
   const handleDragMove = useCallback((team: string, rowIndex: number) => {
     // Set the team that needs expansion if the row is beyond current rows
-    const teamRows = getProjectPositionAndRows(team).rows;
-    const maxExistingRow = teamRows.length > 0 
-      ? Math.max(...teamRows.map(row => row.row))
-      : -1;
+    const { rows, maxRow } = getProjectPositionAndRows(team);
     
-    if (rowIndex > maxExistingRow) {
+    // If dragging beyond current rows, show expansion indicator and increase container height
+    if (rowIndex > maxRow) {
       setExpandingTeam(team);
+      
+      // Calculate new container height
+      const newHeight = (rowIndex + 1) * ROW_HEIGHT + 16; // +16 for padding
+      
+      // Update the height for this specific team
+      setTeamHeights(prev => ({
+        ...prev,
+        [team]: Math.max(newHeight, MIN_CONTAINER_HEIGHT)
+      }));
     } else {
-      setExpandingTeam(null);
+      // Only clear indicator if this team is currently showing as expanding
+      if (expandingTeam === team) {
+        setExpandingTeam(null);
+      }
     }
-  }, [projectsByTeam]);
+  }, [expandingTeam, projectsByTeam]);
 
   const getProjectPositionAndRows = (team: string) => {
-    const projects = projectsByTeam[team];
-    if (!projects || projects.length === 0) return { rows: [], containerHeight: "60px" };
+    const projects = projectsByTeam[team] || [];
+    
+    // If no projects, return empty data
+    if (projects.length === 0) {
+      return { 
+        rows: [], 
+        containerHeight: teamHeights[team] || MIN_CONTAINER_HEIGHT,
+        maxRow: -1
+      };
+    }
     
     const sortedProjects = [...projects].sort((a, b) => 
       a.startDate!.getTime() - b.startDate!.getTime()
@@ -196,6 +219,7 @@ export function ProductRoadmap() {
     
     // Tracking occupied time ranges in each row
     const rowOccupancy: { start: number; end: number }[][] = [];
+    let maxRow = -1;
     
     sortedProjects.forEach(project => {
       const startTime = project.startDate!.getTime();
@@ -227,6 +251,9 @@ export function ProductRoadmap() {
         }
       }
       
+      // Keep track of the maximum row index used
+      maxRow = Math.max(maxRow, rowIndex);
+      
       // Add this project's time range to the row's occupancy
       rowOccupancy[rowIndex].push({ start: startTime, end: endTime });
       
@@ -246,16 +273,27 @@ export function ProductRoadmap() {
       });
     });
     
-    // Calculate container height based on the number of rows needed
-    // Each row is 45px, plus some padding
-    const rowCount = rowOccupancy.length;
-    const containerHeight = `${Math.max(rowCount * 45 + 16, 60)}px`;
+    // Use the saved custom height if available, otherwise calculate based on rows
+    const calculatedHeight = Math.max((maxRow + 1) * ROW_HEIGHT + 16, MIN_CONTAINER_HEIGHT);
+    const containerHeight = teamHeights[team] || calculatedHeight;
     
     return {
       rows,
-      containerHeight
+      containerHeight: `${containerHeight}px`,
+      maxRow
     };
   };
+
+  // Reset team heights when teams change
+  useEffect(() => {
+    const newHeights: Record<string, number> = {};
+    teams.forEach(team => {
+      const { maxRow } = getProjectPositionAndRows(team);
+      const calculatedHeight = Math.max((maxRow + 1) * ROW_HEIGHT + 16, MIN_CONTAINER_HEIGHT);
+      newHeights[team] = calculatedHeight;
+    });
+    setTeamHeights(newHeights);
+  }, [teams, projects]);
 
   return (
     <div className="space-y-6">
@@ -347,6 +385,7 @@ export function ProductRoadmap() {
                         <div 
                           className={`flex-1 relative roadmap-timeline`} 
                           style={{ height: containerHeight }}
+                          ref={el => timelineRefs.current[team] = el}
                         >
                           <div className="grid grid-cols-12 h-full">
                             {Array.from({ length: 12 }).map((_, i) => (
@@ -360,12 +399,12 @@ export function ProductRoadmap() {
                           
                           {/* Expansion indicator at the bottom */}
                           {expandingTeam === team && (
-                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-500 z-20" />
+                            <div className="absolute bottom-0 left-0 right-0 h-2 bg-purple-500 z-20 animate-pulse" />
                           )}
                           
                           <div className="absolute inset-0 pt-2 pb-8">
                             {rows.map(({ project, row, leftPos, width }) => {
-                              const topPos = `${row * 45 + 8}px`;
+                              const topPos = `${row * ROW_HEIGHT + 8}px`;
                               const projectStatus = project.status || 'planned';
                               
                               return (
@@ -414,6 +453,7 @@ export function ProductRoadmap() {
           <span className="text-sm">Blocked</span>
         </div>
       </div>
+      
       
       <Dialog open={showTrashBin} onOpenChange={setShowTrashBin}>
         <DialogContent className="max-w-3xl">

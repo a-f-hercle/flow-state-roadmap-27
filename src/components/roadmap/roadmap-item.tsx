@@ -25,7 +25,7 @@ interface RoadmapItemProps {
   topPos: string;
   onMoveStart: () => void;
   onProjectClick: (projectId: string) => void;
-  onDragMove?: (rowIndex: number) => void; // Add callback for drag move
+  onDragMove?: (rowIndex: number) => void; // Callback for drag move
 }
 
 export function RoadmapItem({
@@ -53,6 +53,19 @@ export function RoadmapItem({
   const isDraggingRef = useRef<boolean>(false);
   const isResizingRef = useRef<boolean>(false);
   const currentRowRef = useRef<number>(0);
+
+  // Extract row from topPos for initialization
+  useEffect(() => {
+    if (topPos) {
+      const match = topPos.match(/(\d+)px/);
+      if (match && match[1]) {
+        const pixelValue = parseInt(match[1], 10);
+        const rowHeight = 45;
+        const rowIndex = Math.floor((pixelValue - 8) / rowHeight);
+        currentRowRef.current = rowIndex;
+      }
+    }
+  }, [topPos]);
 
   const formatShortDate = (date: Date) => {
     return format(date, "MMM d");
@@ -173,6 +186,8 @@ export function RoadmapItem({
     const parentRect = timelineRef.current.getBoundingClientRect();
     
     const newLeft = e.clientX - parentRect.left - dragStartPos.x;
+    
+    // Calculate new vertical position, allowing it to go outside visible area
     const newTop = e.clientY - parentRect.top - dragStartPos.y;
     
     const weekWidth = parentRect.width / 52;
@@ -180,6 +195,7 @@ export function RoadmapItem({
     const leftPercent = (snapToWeek / parentRect.width) * 100 + '%';
     
     const rowHeight = 45;
+    // Don't cap at container height - allow to move beyond
     const snapToRow = Math.max(0, Math.round(newTop / rowHeight)) * rowHeight + 8;
     const topPx = Math.max(8, snapToRow) + 'px';
     
@@ -237,9 +253,6 @@ export function RoadmapItem({
       setIsDragging(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
-      
-      // Reset the current row reference
-      currentRowRef.current = 0;
       
       updateProject(project);
     }
@@ -332,8 +345,8 @@ export function RoadmapItem({
         </div>
         
         {isDragging && (
-          <div className="absolute -top-8 left-0 bg-black text-white text-xs px-2 py-1 rounded">
-            Dragging...
+          <div className="absolute -top-8 left-0 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50">
+            Dragging {project.title}
           </div>
         )}
       </div>
