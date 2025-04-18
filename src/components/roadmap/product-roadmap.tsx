@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useCallback } from "react";
 import { 
   Card, 
@@ -160,7 +161,7 @@ export function ProductRoadmap() {
 
   const getProjectPositionAndRows = (team: string) => {
     const projects = projectsByTeam[team];
-    if (!projects) return [];
+    if (!projects || projects.length === 0) return { rows: [], containerHeight: "60px" };
     
     const sortedProjects = [...projects].sort((a, b) => 
       a.startDate!.getTime() - b.startDate!.getTime()
@@ -173,25 +174,28 @@ export function ProductRoadmap() {
       width: string;
     }[] = [];
     
-    const rowHeights: { [key: number]: number } = {};
-    let maxRow = 0;
+    // Tracking occupied time ranges in each row
+    const rowOccupancy: { start: number; end: number }[][] = [];
     
     sortedProjects.forEach(project => {
       const startTime = project.startDate!.getTime();
       const endTime = project.endDate!.getTime();
       
+      // Find first available row where this project can fit
       let rowIndex = 0;
       let foundRow = false;
       
       while (!foundRow) {
-        foundRow = true;
-        
-        for (const item of rows) {
-          if (item.row === rowIndex) {
-            const itemStartTime = item.project.startDate!.getTime();
-            const itemEndTime = item.project.endDate!.getTime();
-            
-            if (!(endTime <= itemStartTime || startTime >= itemEndTime)) {
+        // Check if this row exists in our occupancy tracker
+        if (!rowOccupancy[rowIndex]) {
+          rowOccupancy[rowIndex] = [];
+          foundRow = true;
+        } else {
+          foundRow = true;
+          
+          // Check if project overlaps with any existing project in this row
+          for (const timeRange of rowOccupancy[rowIndex]) {
+            if (!(endTime <= timeRange.start || startTime >= timeRange.end)) {
               foundRow = false;
               break;
             }
@@ -203,8 +207,8 @@ export function ProductRoadmap() {
         }
       }
       
-      maxRow = Math.max(maxRow, rowIndex);
-      rowHeights[rowIndex] = (rowIndex + 1) * 45 + 8;
+      // Add this project's time range to the row's occupancy
+      rowOccupancy[rowIndex].push({ start: startTime, end: endTime });
       
       const startDate = new Date(2025, 0, 1);
       const msInWeek = 7 * 24 * 60 * 60 * 1000;
@@ -222,11 +226,14 @@ export function ProductRoadmap() {
       });
     });
     
-    const containerHeight = Math.max(...Object.values(rowHeights), 60);
+    // Calculate container height based on the number of rows needed
+    // Each row is 45px, plus some padding
+    const rowCount = rowOccupancy.length;
+    const containerHeight = `${Math.max(rowCount * 45 + 16, 60)}px`;
     
     return {
       rows,
-      containerHeight: `${containerHeight}px`
+      containerHeight
     };
   };
 
@@ -313,7 +320,7 @@ export function ProductRoadmap() {
                           {team}
                         </div>
                         
-                        <div className="flex-1 relative roadmap-timeline" style={{ minHeight: containerHeight }}>
+                        <div className="flex-1 relative roadmap-timeline" style={{ height: containerHeight }}>
                           <div className="grid grid-cols-12 h-full">
                             {Array.from({ length: 12 }).map((_, i) => (
                               <div key={i} className="border-r last:border-r-0 h-full">

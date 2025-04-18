@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Project } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -276,7 +277,8 @@ export function RoadmapItem({
         style={{ 
           left: isDragging ? position.left : leftPos, 
           width: isResizing ? itemWidth : width,
-          top: isDragging ? position.top : topPos
+          top: isDragging ? position.top : topPos,
+          minHeight: "44px" // Ensure minimum height for content
         }}
         onClick={handleClick}
         onMouseDown={handleMouseDown}
@@ -285,22 +287,25 @@ export function RoadmapItem({
         tabIndex={0}
       >
         <div className="p-2 flex flex-col gap-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="font-medium text-sm leading-tight flex-1 min-w-0">
-              {project.title}
+          {/* Title now gets its own row for better visibility */}
+          <div className="font-medium text-sm leading-tight w-full mb-1 pr-6">
+            {project.title}
+          </div>
+          
+          <div className="flex items-center justify-between gap-1">
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate">
+                {formatShortDate(project.startDate!)} - {formatShortDate(project.endDate!)}
+              </span>
             </div>
+            
             <button
               onClick={handleStatusToggle}
-              className={`${getStatusColor(project.status)} text-white text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap hover:opacity-90 transition-opacity`}
+              className={`${getStatusColor(project.status)} text-white text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap hover:opacity-90 transition-opacity ml-auto`}
             >
               {getStatusLabel(project.status)}
             </button>
-          </div>
-          <div className="flex items-center text-xs text-muted-foreground mt-auto">
-            <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
-            <span className="truncate">
-              {formatShortDate(project.startDate!)} - {formatShortDate(project.endDate!)}
-            </span>
           </div>
         </div>
         
