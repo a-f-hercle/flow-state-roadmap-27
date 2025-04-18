@@ -42,10 +42,16 @@ export function MultiSelect({
     }
   };
 
-  const selectedLabels = value.map(
+  // Ensure value is always an array, even if it's undefined
+  const safeValue = React.useMemo(() => {
+    return Array.isArray(value) ? value : [];
+  }, [value]);
+
+  const selectedLabels = safeValue.map(
     (v) => options.find((option) => option.value === v)?.label || v
   );
 
+  // Make sure we're passing a CommandList to the Command component
   return (
     <Command
       className={cn(
@@ -65,14 +71,14 @@ export function MultiSelect({
               className="ml-1 rounded-full outline-none focus:ring-2"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  handleUnselect(value[index]);
+                  handleUnselect(safeValue[index]);
                 }
               }}
               onMouseDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
               }}
-              onClick={() => handleUnselect(value[index])}
+              onClick={() => handleUnselect(safeValue[index])}
             >
               <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
             </button>
@@ -84,7 +90,7 @@ export function MultiSelect({
           onValueChange={setInputValue}
           onBlur={() => setOpen(false)}
           onFocus={() => setOpen(true)}
-          placeholder={value.length === 0 ? placeholder : ""}
+          placeholder={safeValue.length === 0 ? placeholder : ""}
           className="flex-1 outline-none bg-transparent min-w-[8rem] min-h-[1.5rem]"
         />
       </div>
@@ -94,7 +100,7 @@ export function MultiSelect({
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup className="max-h-60 overflow-auto">
               {options.map((option) => {
-                const isSelected = value.includes(option.value);
+                const isSelected = safeValue.includes(option.value);
                 return (
                   <CommandItem
                     key={option.value}

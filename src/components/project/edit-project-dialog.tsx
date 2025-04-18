@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useProjects } from "@/context/project-context";
 import { Project } from "@/types";
@@ -14,10 +13,11 @@ import { ProjectForm } from "./project-form";
 import { RoadmapSettings } from "./roadmap-settings";
 import { ProjectFormValues } from "./types/project-form";
 import { Textarea } from "@/components/ui/textarea";
-import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhaseBadge } from "@/components/ui/phase-badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 type EditProjectDialogProps = {
   open: boolean;
@@ -81,7 +81,6 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
   }, [project.team]);
 
   useEffect(() => {
-    // When switching to the phase tab, automatically focus on next phase if it's not already selected
     if (activeTab === "phase" && !nextPhase && nextAvailablePhase) {
       setNextPhase(nextAvailablePhase);
     }
@@ -128,11 +127,9 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
       delete updatedProject.displayOnRoadmap;
     }
     
-    // If transitioning to a new phase
     if (nextPhase && nextPhase !== project.currentPhase) {
       updatedProject.currentPhase = nextPhase as any;
       
-      // Initialize the new phase if not already present
       if (!updatedProject.phases[nextPhase]) {
         updatedProject.phases[nextPhase] = {
           status: 'not-started',
@@ -140,7 +137,6 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
         };
       }
       
-      // Mark the current phase as completed
       if (updatedProject.phases[project.currentPhase]) {
         updatedProject.phases[project.currentPhase] = {
           ...updatedProject.phases[project.currentPhase],
@@ -149,14 +145,12 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
         };
       }
       
-      // Auto set the new phase to in-progress
       updatedProject.phases[nextPhase] = {
         ...updatedProject.phases[nextPhase],
         status: 'in-progress',
         startDate: new Date()
       };
       
-      // Add phase transition to comment if not already provided
       const transitionComment = `Moved project from ${phaseNames[project.currentPhase]} to ${phaseNames[nextPhase]} phase`;
       if (!values.comment) {
         values.comment = transitionComment;
@@ -172,7 +166,7 @@ export function EditProjectDialog({ open, setOpen, project }: EditProjectDialogP
     });
     
     setOpen(false);
-    setNextPhase(null); // Reset the phase transition state
+    setNextPhase(null);
   };
 
   return (
