@@ -19,7 +19,7 @@ import TaskDetailPage from "./pages/TaskDetail";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
-import UsersManagement from "./pages/UsersManagement";
+import UserManagement from "./pages/UserManagement";
 
 const queryClient = new QueryClient();
 
@@ -59,7 +59,7 @@ const AppRoutes = () => {
       <Route path="/roadmap" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
       <Route path="/roadmap/tasks/:id" element={<ProtectedRoute><TaskDetailPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/users" element={<ProtectedRoute><UsersManagement /></ProtectedRoute>} />
+      <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

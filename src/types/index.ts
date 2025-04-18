@@ -1,3 +1,4 @@
+
 export type ProjectPhase = 'proposal' | 'build' | 'release' | 'results';
 
 export type ReviewStatus = 'pending' | 'approved' | 'rejected';
@@ -65,6 +66,8 @@ export type Project = {
   history?: HistoryEntry[];
   isDeleted?: boolean; // Added isDeleted flag
   owner_id?: string; // Added owner_id field
+  approvers?: string[]; // IDs of team members who approve proposals
+  builders?: string[]; // IDs of team members responsible for build phase
 };
 
 export type TaskCategory = 'feature' | 'bugfix' | 'improvement' | 'refactor' | 'infrastructure' | 'documentation' | 'compliance' | 'security';

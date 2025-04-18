@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useProjects } from "@/context/project-context";
 import { Button } from "@/components/ui/button";
@@ -9,20 +8,40 @@ import { PhaseTimeline } from "@/components/project/phase-timeline";
 import { ProjectHistory } from "@/components/project/project-history";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { ArrowLeft, Calendar, Clock, Users, Tag, Edit } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Users, Tag, Edit, UserCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { mockReviewers } from "@/data/mock-data";
 import { ReviewStatus } from "@/types";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EditProjectDialog } from "@/components/project/edit-project-dialog";
+import { fetchTeamMembers } from "@/components/team/services/team-member-service";
+import { TeamMember } from "@/components/team/types/team-member";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getProject, updateReview } = useProjects();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   
   const project = getProject(id || "");
+  
+  useEffect(() => {
+    if (project) {
+      loadTeamMembers();
+    }
+  }, [project]);
+
+  const loadTeamMembers = async () => {
+    if (project) {
+      try {
+        const members = await fetchTeamMembers(project.team);
+        setTeamMembers(members);
+      } catch (error) {
+        console.error("Failed to load team members:", error);
+      }
+    }
+  };
   
   if (!project) {
     return (
@@ -39,6 +58,13 @@ export default function ProjectDetail() {
   const getReviewerData = (reviewerId: string) => {
     return mockReviewers.find(reviewer => reviewer.id === reviewerId);
   };
+
+  const findTeamMember = (memberId?: string) => {
+    if (!memberId) return null;
+    return teamMembers.find(member => member.id === memberId);
+  };
+
+  const projectOwner = findTeamMember(project.owner_id);
   
   const getStatusColor = (status: ReviewStatus) => {
     switch(status) {
@@ -92,6 +118,25 @@ export default function ProjectDetail() {
             </div>
           </CardContent>
         </Card>
+        
+        {projectOwner && (
+          <Card className="w-full md:w-auto md:min-w-[250px]">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Owner:</span>
+                <div className="flex items-center">
+                  <Avatar className="h-6 w-6 mr-2">
+                    <AvatarImage src={projectOwner.avatar_url} />
+                    <AvatarFallback>{projectOwner.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium">{projectOwner.name}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         <Card className="w-full md:w-auto md:min-w-[200px]">
           <CardContent className="py-4">
             <div className="flex items-center">
@@ -136,6 +181,7 @@ export default function ProjectDetail() {
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="assignees">Phase Assignees</TabsTrigger>
         </TabsList>
         
         <TabsContent value="timeline" className="space-y-4">
@@ -239,6 +285,85 @@ export default function ProjectDetail() {
         
         <TabsContent value="history" className="space-y-4">
           <ProjectHistory history={project.history} />
+        </TabsContent>
+        
+        <TabsContent value="assignees" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserCheck className="h-5 w-5" />
+                Phase Assignees
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold border-l-4 border-blue-500 pl-3">Proposal Phase</h3>
+                    <div className="bg-muted/40 rounded-lg p-4">
+                      <h4 className="text-sm font-medium mb-3">Approvers</h4>
+                      {project.approvers && project.approvers.length > 0 ? (
+                        <div className="space-y-2">
+                          {project.approvers.map(approverId => {
+                            const approver = findTeamMember(approverId);
+                            return approver ? (
+                              <div key={approverId} className="flex items-center space-x-2">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={approver.avatar_url} />
+                                  <AvatarFallback>{approver.name[0]}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="text-sm font-medium">{approver.name}</p>
+                                  <p className="text-xs text-muted-foreground">{approver.role}</p>
+                                </div>
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No approvers assigned</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="font-semibold border-l-4 border-green-500 pl-3">Build Phase</h3>
+                    <div className="bg-muted/40 rounded-lg p-4">
+                      <h4 className="text-sm font-medium mb-3">Assigned Developers</h4>
+                      {project.builders && project.builders.length > 0 ? (
+                        <div className="space-y-2">
+                          {project.builders.map(builderId => {
+                            const builder = findTeamMember(builderId);
+                            return builder ? (
+                              <div key={builderId} className="flex items-center space-x-2">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={builder.avatar_url} />
+                                  <AvatarFallback>{builder.name[0]}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="text-sm font-medium">{builder.name}</p>
+                                  <p className="text-xs text-muted-foreground">{builder.role}</p>
+                                </div>
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No builders assigned</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                  
+                <div className="text-center">
+                  <Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Assignees
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
       

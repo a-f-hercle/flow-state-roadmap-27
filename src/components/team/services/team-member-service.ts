@@ -1,3 +1,4 @@
+
 import { TeamMember } from "../types/team-member";
 
 /**
@@ -19,6 +20,7 @@ export const addTeamMember = async (
     name: data.name,
     role: data.role,
     team_name: teamName,
+    email: `${data.name.toLowerCase().replace(/\s+/g, '.')}@example.com`, // Generate an email based on name
     avatar_url: avatarUrl
   };
   
@@ -51,6 +53,7 @@ const initialTeamMembers: TeamMember[] = [
     name: "Marco Levarato",
     role: "Head of Tech Trading & Infrastructure",
     team_name: "Tech Trading",
+    email: "marco.levarato@example.com",
     avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Marco Levarato")}`
   },
   {
@@ -58,6 +61,7 @@ const initialTeamMembers: TeamMember[] = [
     name: "Marco Levarato",
     role: "Head of Tech Trading & Infrastructure",
     team_name: "Tech Infrastructure",
+    email: "marco.levarato@example.com",
     avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Marco Levarato")}`
   },
   {
@@ -65,6 +69,7 @@ const initialTeamMembers: TeamMember[] = [
     name: "Massimo Mannoni",
     role: "Head of Banking & Trading Systems",
     team_name: "Tech Custody & Banking",
+    email: "massimo.mannoni@example.com",
     avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Massimo Mannoni")}`
   },
   {
@@ -72,6 +77,7 @@ const initialTeamMembers: TeamMember[] = [
     name: "Massimo Mannoni",
     role: "Head of Banking & Trading Systems",
     team_name: "Tech PMS",
+    email: "massimo.mannoni@example.com",
     avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Massimo Mannoni")}`
   },
   {
@@ -79,6 +85,7 @@ const initialTeamMembers: TeamMember[] = [
     name: "Massimo Mannoni",
     role: "Head of Banking & Trading Systems",
     team_name: "Tech Execution",
+    email: "massimo.mannoni@example.com",
     avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Massimo Mannoni")}`
   },
   {
@@ -86,6 +93,7 @@ const initialTeamMembers: TeamMember[] = [
     name: "Andrea Petrolati",
     role: "Head of Business Operations",
     team_name: "Business Operations",
+    email: "andrea.petrolati@example.com",
     avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Andrea Petrolati")}`
   }
 ];
@@ -159,3 +167,54 @@ export const removeTeamMember = async (memberId: string): Promise<void> => {
   // No database action needed
   return;
 };
+
+/**
+ * Add a new user to the system - mock implementation
+ */
+export const addUser = async (data: Omit<TeamMember, 'id' | 'avatar_url'>) => {
+  const avatar_url = `https://api.dicebear.com/7.x/avatars/svg?seed=${Math.random()}`;
+  const newUser = {
+    ...data,
+    id: Math.random().toString(36).substring(2),
+    avatar_url
+  };
+  
+  return newUser;
+};
+
+/**
+ * Update user details - mock implementation
+ */
+export const updateUser = async (userId: string, data: Partial<Omit<TeamMember, 'id'>>) => {
+  // In a real implementation, this would update the user in the database
+  return { id: userId, ...data };
+};
+
+/**
+ * Fetch all users across all teams - mock implementation
+ */
+export const fetchAllUsers = async (): Promise<TeamMember[]> => {
+  // This is a mock implementation
+  // In a real app, we would fetch from the database
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  // Get unique users from all teams
+  const teams = ["Tech Trading", "Tech Custody & Banking", "Tech PMS", "Tech Execution", "Tech Infrastructure", "Business Operations"];
+  const allMembers: TeamMember[] = [];
+  
+  for (const team of teams) {
+    const members = await fetchTeamMembers(team);
+    
+    // Add only members that aren't already in the list (by email)
+    for (const member of members) {
+      if (!allMembers.some(m => m.email === member.email)) {
+        allMembers.push(member);
+      }
+    }
+  }
+  
+  return allMembers;
+};
+

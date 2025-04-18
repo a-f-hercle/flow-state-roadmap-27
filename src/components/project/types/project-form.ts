@@ -12,4 +12,6 @@ export type ProjectFormValues = {
   category?: string;
   comment: string;
   owner_id: string;
+  approvers?: string[]; // IDs of team members who can approve proposals
+  builders?: string[]; // IDs of team members responsible for the build phase
 };

@@ -1,3 +1,4 @@
+
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -23,7 +24,8 @@ import {
   Image as ImageIcon, 
   Upload,
   LogOut,
-  User
+  User,
+  UserCog
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -112,8 +114,19 @@ export function AppSidebar() {
       label: "Roadmap",
       icon: Route,
       path: "/roadmap",
+    },
+    {
+      label: "User Management",
+      icon: UserCog,
+      path: "/users",
+      // Only show this to admin users - in a real app, check user role
+      admin: true,
     }
   ];
+
+  // In a real app, you'd check if user has admin role
+  // For demo purposes, we're showing admin functions to everyone
+  const isAdmin = true; 
 
   return (
     <Sidebar>
@@ -152,7 +165,9 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {menuItems
+                .filter(item => !item.admin || isAdmin)
+                .map((item) => (
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton 
                     asChild 
