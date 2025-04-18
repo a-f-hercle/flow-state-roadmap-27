@@ -153,13 +153,8 @@ export function ProductRoadmap() {
 
   const confirmPermanentDelete = () => {
     if (projectToPermanentDelete) {
-      // In a real application, you would make an API call to permanently delete
-      // For now, we'll just keep it marked as deleted since we don't have a true delete method
       toast.success(`Project "${projectToPermanentDelete.title}" has been permanently deleted`);
       setProjectToPermanentDelete(null);
-      
-      // Note: In a real app with a backend, you would call a method to permanently remove the project
-      // For now, we'll just close the dialog
     }
   };
 
@@ -177,6 +172,9 @@ export function ProductRoadmap() {
       leftPos: string;
       width: string;
     }[] = [];
+    
+    const rowHeights: { [key: number]: number } = {};
+    let maxRow = 0;
     
     sortedProjects.forEach(project => {
       const startTime = project.startDate!.getTime();
@@ -205,17 +203,14 @@ export function ProductRoadmap() {
         }
       }
       
-      // Calculate position based on weeks instead of months
-      const startDate = new Date(2025, 0, 1); // Jan 1, 2025
-      const projectStartTime = project.startDate!.getTime();
-      const projectEndTime = project.endDate!.getTime();
+      maxRow = Math.max(maxRow, rowIndex);
+      rowHeights[rowIndex] = (rowIndex + 1) * 45 + 8;
       
-      // Calculate weeks from Jan 1, 2025
+      const startDate = new Date(2025, 0, 1);
       const msInWeek = 7 * 24 * 60 * 60 * 1000;
-      const weeksFromStart = (projectStartTime - startDate.getTime()) / msInWeek;
-      const projectDurationInWeeks = (projectEndTime - projectStartTime) / msInWeek;
+      const weeksFromStart = (startTime - startDate.getTime()) / msInWeek;
+      const projectDurationInWeeks = (endTime - startTime) / msInWeek;
       
-      // 52 weeks in a year, position based on percentage
       const leftPos = `${(weeksFromStart * 100) / 52}%`;
       const width = `${Math.max((projectDurationInWeeks * 100) / 52, 2)}%`;
       
@@ -227,7 +222,12 @@ export function ProductRoadmap() {
       });
     });
     
-    return rows;
+    const containerHeight = Math.max(...Object.values(rowHeights), 60);
+    
+    return {
+      rows,
+      containerHeight: `${containerHeight}px`
+    };
   };
 
   return (
@@ -293,7 +293,6 @@ export function ProductRoadmap() {
           <CardContent onClick={handleTimelineClick} className="relative">
             <div className="overflow-x-auto">
               <div className="min-w-[1200px]">
-                {/* Month labels at the top */}
                 <div className="grid grid-cols-12 gap-0 border-b ml-40">
                   {Array.from({ length: 12 }).map((_, index) => {
                     const date = new Date(2025, index, 1);
@@ -305,54 +304,50 @@ export function ProductRoadmap() {
                   })}
                 </div>
                 
-                {/* Teams and timeline content with teams on the left */}
                 <div className="relative">
-                  {filteredTeams.map((team, teamIndex) => (
-                    <div key={team} className={`flex border-b ${teamIndex === filteredTeams.length - 1 ? 'border-b-0' : ''}`}>
-                      {/* Team name on the left */}
-                      <div className="sticky left-0 w-40 bg-white dark:bg-gray-950 z-10 p-4 flex items-center font-medium border-r">
-                        {team}
-                      </div>
-                      
-                      {/* Timeline area with grid for months and weeks */}
-                      <div className="flex-1 min-h-60 relative roadmap-timeline">
-                        <div className="grid grid-cols-12 h-full">
-                          {Array.from({ length: 12 }).map((_, i) => (
-                            <div key={i} className="border-r last:border-r-0 h-full">
-                              {/* Subtle week indicators */}
-                              <div className="flex h-full">
+                  {filteredTeams.map((team, teamIndex) => {
+                    const { rows, containerHeight } = getProjectPositionAndRows(team);
+                    return (
+                      <div key={team} className={`flex border-b ${teamIndex === filteredTeams.length - 1 ? 'border-b-0' : ''}`}>
+                        <div className="sticky left-0 w-40 bg-white dark:bg-gray-950 z-10 p-4 flex items-center font-medium border-r">
+                          {team}
+                        </div>
+                        
+                        <div className="flex-1 relative roadmap-timeline" style={{ minHeight: containerHeight }}>
+                          <div className="grid grid-cols-12 h-full">
+                            {Array.from({ length: 12 }).map((_, i) => (
+                              <div key={i} className="border-r last:border-r-0 h-full">
                                 {Array.from({ length: 4 }).map((_, j) => (
                                   <div key={j} className="flex-1 h-full border-r last:border-r-0 border-dashed border-gray-100 dark:border-gray-800" />
                                 ))}
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {/* Roadmap items positioned absolutely */}
-                        <div className="absolute inset-0 pt-2 pb-8">
-                          {getProjectPositionAndRows(team).map(({ project, row, leftPos, width }) => {
-                            const topPos = `${row * 45 + 8}px`;
-                            const projectStatus = project.status || 'planned';
-                            
-                            return (
-                              <RoadmapItem
-                                key={project.id}
-                                project={project}
-                                teamColor={teamColors[project.team as keyof typeof teamColors]}
-                                statusStyle={statusStyles[projectStatus as keyof typeof statusStyles]}
-                                leftPos={leftPos}
-                                width={width}
-                                topPos={topPos}
-                                onMoveStart={handleMoveStart}
-                                onProjectClick={handleProjectClick}
-                              />
-                            );
-                          })}
+                            ))}
+                          </div>
+                          
+                          <div className="absolute inset-0 pt-2 pb-8">
+                            {rows.map(({ project, row, leftPos, width }) => {
+                              const topPos = `${row * 45 + 8}px`;
+                              const projectStatus = project.status || 'planned';
+                              
+                              return (
+                                <RoadmapItem
+                                  key={project.id}
+                                  project={project}
+                                  teamColor={teamColors[project.team as keyof typeof teamColors]}
+                                  statusStyle={statusStyles[projectStatus as keyof typeof statusStyles]}
+                                  leftPos={leftPos}
+                                  width={width}
+                                  topPos={topPos}
+                                  onMoveStart={handleMoveStart}
+                                  onProjectClick={handleProjectClick}
+                                />
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -380,7 +375,6 @@ export function ProductRoadmap() {
         </div>
       </div>
       
-      {/* Trash Bin Dialog */}
       <Dialog open={showTrashBin} onOpenChange={setShowTrashBin}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -436,7 +430,6 @@ export function ProductRoadmap() {
         </DialogContent>
       </Dialog>
       
-      {/* Restore Confirmation Dialog */}
       <AlertDialog open={!!projectToRestore} onOpenChange={() => projectToRestore && setProjectToRestore(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -452,7 +445,6 @@ export function ProductRoadmap() {
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Permanent Delete Confirmation Dialog */}
       <AlertDialog open={!!projectToPermanentDelete} onOpenChange={() => projectToPermanentDelete && setProjectToPermanentDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
