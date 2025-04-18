@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { 
   Card, 
@@ -7,7 +8,7 @@ import {
   CardDescription
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Trash2, RefreshCw } from "lucide-react";
+import { Clock, Trash2, RefreshCw, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useProjects } from "@/context/project-context";
@@ -65,8 +66,11 @@ export function ProductRoadmap() {
   const [projectToPermanentDelete, setProjectToPermanentDelete] = useState<Project | null>(null);
   const [expandingTeam, setExpandingTeam] = useState<string | null>(null);
   const [teamHeights, setTeamHeights] = useState<Record<string, number>>({});
+  const [teamBoundaries, setTeamBoundaries] = useState<{ name: string, top: number, bottom: number }[]>([]);
+  const [hasCollisions, setHasCollisions] = useState(false);
   const teamRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const timelineRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const roadmapContainerRef = useRef<HTMLDivElement | null>(null);
   
   const roadmapProjects = useMemo(() => {
     return projects
@@ -119,6 +123,43 @@ export function ProductRoadmap() {
   const filteredTeams = selectedTeams.length > 0 
     ? selectedTeams 
     : teams;
+
+  // Update team boundaries whenever the DOM updates
+  useEffect(() => {
+    const updateTeamBoundaries = () => {
+      const boundaries: { name: string, top: number, bottom: number }[] = [];
+      
+      Object.entries(teamRefs.current).forEach(([team, ref]) => {
+        if (ref && filteredTeams.includes(team)) {
+          const rect = ref.getBoundingClientRect();
+          const containerRect = roadmapContainerRef.current?.getBoundingClientRect() || { top: 0 };
+          
+          boundaries.push({
+            name: team,
+            top: rect.top - containerRect.top,
+            bottom: rect.bottom - containerRect.top
+          });
+        }
+      });
+      
+      setTeamBoundaries(boundaries);
+    };
+    
+    updateTeamBoundaries();
+    
+    // Set up resize observer to track changes
+    const resizeObserver = new ResizeObserver(() => {
+      updateTeamBoundaries();
+    });
+    
+    if (roadmapContainerRef.current) {
+      resizeObserver.observe(roadmapContainerRef.current);
+    }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [filteredTeams, teamHeights]);
 
   const handleProjectClick = useCallback((projectId: string) => {
     navigate(`/projects/${projectId}`);
@@ -196,6 +237,12 @@ export function ProductRoadmap() {
     }
   }, [expandingTeam, projectsByTeam]);
 
+  const handleCollisionChange = (isColliding: boolean) => {
+    if (isColliding) {
+      setHasCollisions(true);
+    }
+  };
+
   const getProjectPositionAndRows = (team: string) => {
     const projects = projectsByTeam[team] || [];
     
@@ -217,10 +264,11 @@ export function ProductRoadmap() {
       row: number;
       leftPos: string;
       width: string;
+      isLastRow: boolean;
     }[] = [];
     
     // Tracking occupied time ranges in each row
-    const rowOccupancy: { start: number; end: number }[][] = [];
+    const rowOccupancy: { start: number; end: number; projectId: string }[][] = [];
     let maxRow = -1;
     
     sortedProjects.forEach(project => {
@@ -257,7 +305,11 @@ export function ProductRoadmap() {
       maxRow = Math.max(maxRow, rowIndex);
       
       // Add this project's time range to the row's occupancy
-      rowOccupancy[rowIndex].push({ start: startTime, end: endTime });
+      rowOccupancy[rowIndex].push({ 
+        start: startTime, 
+        end: endTime,
+        projectId: project.id
+      });
       
       const startDate = new Date(2025, 0, 1);
       const msInWeek = 7 * 24 * 60 * 60 * 1000;
@@ -271,7 +323,8 @@ export function ProductRoadmap() {
         project,
         row: rowIndex,
         leftPos,
-        width
+        width,
+        isLastRow: rowIndex === maxRow
       });
     });
     
@@ -343,6 +396,16 @@ export function ProductRoadmap() {
         ))}
       </div>
       
+      {hasCollisions && (
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-medium text-amber-800">Project collision detected</h3>
+            <p className="text-amber-700 text-sm">Some projects are overlapping on the roadmap. Try repositioning them for better visibility.</p>
+          </div>
+        </div>
+      )}
+      
       {teams.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground mb-4">No projects with timeline data available.</p>
@@ -357,7 +420,7 @@ export function ProductRoadmap() {
           <CardHeader className="pb-0">
             <CardTitle>2025 Roadmap</CardTitle>
           </CardHeader>
-          <CardContent onClick={handleTimelineClick} className="relative">
+          <CardContent ref={roadmapContainerRef} onClick={handleTimelineClick} className="relative">
             <div className="overflow-x-auto">
               <div className="min-w-[1200px]">
                 <div className="grid grid-cols-12 gap-0 border-b ml-40">
@@ -385,7 +448,9 @@ export function ProductRoadmap() {
                         </div>
                         
                         <div 
-                          className={`flex-1 relative roadmap-timeline`} 
+                          className={`flex-1 relative roadmap-timeline ${
+                            expandingTeam === team ? 'bg-purple-50 dark:bg-purple-900/10' : ''
+                          }`} 
                           style={{ height: containerHeight }}
                           ref={el => timelineRefs.current[team] = el}
                         >
@@ -405,7 +470,7 @@ export function ProductRoadmap() {
                           )}
                           
                           <div className="absolute inset-0 pt-2 pb-8">
-                            {rows.map(({ project, row, leftPos, width }) => {
+                            {rows.map(({ project, row, leftPos, width, isLastRow }) => {
                               const topPos = `${row * ROW_HEIGHT + 8}px`;
                               const projectStatus = project.status || 'planned';
                               
@@ -421,6 +486,9 @@ export function ProductRoadmap() {
                                   onMoveStart={handleMoveStart}
                                   onProjectClick={handleProjectClick}
                                   onDragMove={(rowIndex) => handleDragMove(team, rowIndex)}
+                                  teamBoundaries={teamBoundaries}
+                                  isLastRow={isLastRow}
+                                  onCollision={handleCollisionChange}
                                 />
                               );
                             })}

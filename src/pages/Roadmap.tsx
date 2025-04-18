@@ -1,6 +1,6 @@
 
 import { ProductRoadmap } from "@/components/roadmap/product-roadmap";
-import { Toaster } from "@/components/ui/sonner"; // Add Toaster import
+import { Toaster } from "sonner"; // Use sonner toaster for consistent UI
 
 export default function Roadmap() {
   return (

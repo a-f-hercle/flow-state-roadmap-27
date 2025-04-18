@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "sonner";
 
 import { TeamMember } from "@/components/team/types/team-member";
 import { fetchAllUsers, addUser, updateUser } from "@/components/team/services/team-member-service";
@@ -120,6 +121,7 @@ export default function UserManagement() {
     try {
       const allUsers = await fetchAllUsers();
       setUsers(allUsers);
+      setFilteredUsers(allUsers); // Initialize filtered users with all users
     } catch (error) {
       console.error("Error loading users:", error);
       toast({
@@ -133,6 +135,11 @@ export default function UserManagement() {
   };
   
   const applyFilters = () => {
+    if (!users || users.length === 0) {
+      setFilteredUsers([]);
+      return;
+    }
+    
     let filtered = [...users];
     
     // Apply search
@@ -268,8 +275,8 @@ export default function UserManagement() {
   };
   
   // Get unique role values for filter dropdown
-  const uniqueRoles = Array.from(new Set(users.map(user => user.role)));
-  const uniqueTeams = Array.from(new Set(users.map(user => user.team_name)));
+  const uniqueRoles = Array.from(new Set(users?.map(user => user.role) || []));
+  const uniqueTeams = Array.from(new Set(users?.map(user => user.team_name) || []));
   
   return (
     <div className="space-y-6">
@@ -618,6 +625,9 @@ export default function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Add Toaster for notifications */}
+      <Toaster />
     </div>
   );
 }

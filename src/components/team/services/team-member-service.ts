@@ -95,6 +95,38 @@ const initialTeamMembers: TeamMember[] = [
     team_name: "Business Operations",
     email: "andrea.petrolati@example.com",
     avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Andrea Petrolati")}`
+  },
+  {
+    id: "john-1",
+    name: "John Doe",
+    role: "Senior Developer",
+    team_name: "Tech Trading",
+    email: "john.doe@example.com",
+    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("John Doe")}`
+  },
+  {
+    id: "jane-1",
+    name: "Jane Smith",
+    role: "Product Manager",
+    team_name: "Tech PMS",
+    email: "jane.smith@example.com",
+    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Jane Smith")}`
+  },
+  {
+    id: "mike-1",
+    name: "Mike Johnson",
+    role: "Tech Lead",
+    team_name: "Tech Execution",
+    email: "mike.johnson@example.com",
+    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Mike Johnson")}`
+  },
+  {
+    id: "sarah-1",
+    name: "Sarah Wilson",
+    role: "Designer",
+    team_name: "Business Operations",
+    email: "sarah.wilson@example.com",
+    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent("Sarah Wilson")}`
   }
 ];
 
@@ -102,62 +134,13 @@ const initialTeamMembers: TeamMember[] = [
  * Mock implementation - returns pre-loaded team members for the specified team
  */
 export const fetchTeamMembers = async (teamName: string): Promise<TeamMember[]> => {
-  // This is mock data for now
-  const mockTeamMembers: TeamMember[] = [
-    {
-      id: '1',
-      name: 'John Doe',
-      role: 'Senior Developer',
-      team_name: teamName,
-      email: 'john.doe@example.com',
-      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=1'
-    },
-    {
-      id: '2',
-      name: 'Jane Smith',
-      role: 'Product Manager',
-      team_name: teamName,
-      email: 'jane.smith@example.com',
-      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=2'
-    },
-    {
-      id: '3',
-      name: 'Mike Johnson',
-      role: 'Tech Lead',
-      team_name: teamName,
-      email: 'mike.johnson@example.com',
-      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=3'
-    },
-    {
-      id: '4',
-      name: 'Sarah Wilson',
-      role: 'Developer',
-      team_name: teamName,
-      email: 'sarah.wilson@example.com',
-      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=4'
-    },
-    {
-      id: '5',
-      name: 'David Brown',
-      role: 'QA Engineer',
-      team_name: teamName,
-      email: 'david.brown@example.com',
-      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=5'
-    },
-    {
-      id: '6',
-      name: 'Emily Taylor',
-      role: 'Designer',
-      team_name: teamName,
-      email: 'emily.taylor@example.com',
-      avatar_url: 'https://api.dicebear.com/7.x/avatars/svg?seed=6'
-    },
-  ];
-
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
+  // Get team members for the specific team from our mock data
+  const teamMembers = initialTeamMembers.filter(member => member.team_name === teamName);
   
-  return mockTeamMembers;
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  return teamMembers;
 };
 
 /**
@@ -172,7 +155,7 @@ export const removeTeamMember = async (memberId: string): Promise<void> => {
  * Add a new user to the system - mock implementation
  */
 export const addUser = async (data: Omit<TeamMember, 'id' | 'avatar_url'>) => {
-  const avatar_url = `https://api.dicebear.com/7.x/avatars/svg?seed=${Math.random()}`;
+  const avatar_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}`;
   const newUser = {
     ...data,
     id: Math.random().toString(36).substring(2),
@@ -191,30 +174,13 @@ export const updateUser = async (userId: string, data: Partial<Omit<TeamMember, 
 };
 
 /**
- * Fetch all users across all teams - mock implementation
+ * Fetch all users across all teams
+ * Now using our consolidated initialTeamMembers array for consistent data
  */
 export const fetchAllUsers = async (): Promise<TeamMember[]> => {
-  // This is a mock implementation
-  // In a real app, we would fetch from the database
-  
   // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 800));
+  await new Promise(resolve => setTimeout(resolve, 500));
   
-  // Get unique users from all teams
-  const teams = ["Tech Trading", "Tech Custody & Banking", "Tech PMS", "Tech Execution", "Tech Infrastructure", "Business Operations"];
-  const allMembers: TeamMember[] = [];
-  
-  for (const team of teams) {
-    const members = await fetchTeamMembers(team);
-    
-    // Add only members that aren't already in the list (by email)
-    for (const member of members) {
-      if (!allMembers.some(m => m.email === member.email)) {
-        allMembers.push(member);
-      }
-    }
-  }
-  
-  return allMembers;
+  // Return our consolidated list of team members
+  return initialTeamMembers;
 };
-

@@ -12,9 +12,11 @@ export default function ProjectNew() {
   
   const handleCreate = (values: ProjectFormValues) => {
     const tags = values.tags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter((tag) => tag !== "");
+      ? values.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag !== "")
+      : [];
       
     const now = new Date();
     
@@ -39,7 +41,7 @@ export default function ProjectNew() {
     
     const projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> = {
       title: values.title,
-      description: values.description,
+      description: values.description || "",
       team: values.team,
       owner: values.owner || "Unassigned",
       currentPhase: initialPhase,

@@ -1,388 +1,530 @@
 
-import React from "react";
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MultiSelect } from "@/components/ui/multi-select";
-import { useProjects } from "@/context/project-context";
-import { ProjectFormValues } from "@/components/project/types/project-form";
-import { TaskCategory, TaskStatus } from "@/types";
-import { fetchTeamMembers } from "@/components/team/services/team-member-service";
-import { useState, useEffect } from "react";
-import { TeamMember } from "@/components/team/types/team-member";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { CalendarIcon, CheckIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ProjectFormSchema } from "./schemas/project-form-schema";
+import { ProjectFormValues } from "./types/project-form";
+import { RoadmapSettings } from "./roadmap-settings";
+import { 
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { TeamMember } from "../team/types/team-member";
+import { fetchAllUsers } from "../team/services/team-member-service";
 
-type NewProjectFormProps = {
+export function NewProjectForm({
+  onSubmit,
+}: {
   onSubmit: (values: ProjectFormValues) => void;
-};
-
-export function NewProjectForm({ onSubmit }: NewProjectFormProps) {
+}) {
   const form = useForm<ProjectFormValues>({
+    resolver: zodResolver(ProjectFormSchema),
     defaultValues: {
       title: "",
       description: "",
-      team: "",
+      team: "Tech Trading",
       owner: "",
-      owner_id: "",
       tags: "",
       displayOnRoadmap: false,
-      startDate: "",
-      endDate: "",
-      status: undefined,
-      category: undefined,
-      comment: "",
-      approvers: [],
-      builders: [],
+      startDate: undefined,
+      endDate: undefined,
+      status: "planned",
+      category: "feature",
     },
   });
 
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<string>("");
-
-  // Status options
-  const statusOptions = [
-    { label: "Planned", value: "planned" },
-    { label: "In Progress", value: "in-progress" },
-    { label: "Completed", value: "completed" },
-    { label: "Blocked", value: "blocked" }
-  ];
-
-  // Category options
-  const categoryOptions = [
-    { label: "Feature", value: "feature" },
-    { label: "Bug Fix", value: "bugfix" },
-    { label: "Improvement", value: "improvement" },
-    { label: "Refactor", value: "refactor" },
-    { label: "Infrastructure", value: "infrastructure" },
-    { label: "Documentation", value: "documentation" },
-    { label: "Compliance", value: "compliance" },
-    { label: "Security", value: "security" }
-  ];
-
-  // Team options - simplified for demo
-  const teamOptions = [
-    { id: "eng", name: "Engineering" },
-    { id: "design", name: "Design" },
-    { id: "product", name: "Product" },
-    { id: "marketing", name: "Marketing" }
-  ];
-
-  // Load team members when team changes
-  useEffect(() => {
-    async function loadTeamMembers() {
-      if (selectedTeam) {
-        try {
-          const members = await fetchTeamMembers(selectedTeam);
-          setTeamMembers(members);
-        } catch (error) {
-          console.error("Failed to fetch team members:", error);
-        }
-      } else {
-        setTeamMembers([]);
-      }
-    }
-
-    loadTeamMembers();
-  }, [selectedTeam]);
-
-  // Convert team members to options for MultiSelect
-  const teamMemberOptions = teamMembers.map(member => ({
-    value: member.id,
-    label: member.name
-  }));
-
-  const handleTeamChange = (teamId: string) => {
-    setSelectedTeam(teamId);
-    form.setValue("team", teamId);
+  const [showRoadmapSettings, setShowRoadmapSettings] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<TeamMember[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [selectedApprovers, setSelectedApprovers] = useState<TeamMember[]>([]);
+  const [selectedBuilders, setSelectedBuilders] = useState<TeamMember[]>([]);
+  const [openUserSelect, setOpenUserSelect] = useState(false);
+  const [openApproverSelect, setOpenApproverSelect] = useState(false);
+  const [openBuilderSelect, setOpenBuilderSelect] = useState(false);
+  
+  const handleDisplayOnRoadmapChange = (checked: boolean) => {
+    setShowRoadmapSettings(checked);
   };
 
-  const handleFormSubmit = (data: ProjectFormValues) => {
-    onSubmit(data);
+  const loadUsers = async (team: string) => {
+    setIsLoadingUsers(true);
+    try {
+      const users = await fetchAllUsers();
+      // Filter users by selected team
+      const teamUsers = users.filter(user => user.team_name === team);
+      setAvailableUsers(teamUsers);
+    } catch (error) {
+      console.error("Error loading users:", error);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const handleTeamChange = (team: string) => {
+    form.setValue("team", team);
+    loadUsers(team);
+    // Reset owner, approvers and builders when team changes
+    form.setValue("owner", "");
+    form.setValue("owner_id", "");
+    form.setValue("approvers", []);
+    form.setValue("builders", []);
+    setSelectedApprovers([]);
+    setSelectedBuilders([]);
+  };
+
+  const handleOwnerSelect = (user: TeamMember) => {
+    form.setValue("owner", user.name);
+    form.setValue("owner_id", user.id);
+    setOpenUserSelect(false);
+  };
+
+  const handleApproverSelect = (user: TeamMember) => {
+    const currentApprovers = form.getValues("approvers") || [];
+    
+    // Check if user is already selected
+    if (!currentApprovers.includes(user.id)) {
+      // Add user id to form values
+      form.setValue("approvers", [...currentApprovers, user.id]);
+      // Add user to selected approvers for display
+      setSelectedApprovers(prev => [...prev, user]);
+    }
+    
+    setOpenApproverSelect(false);
+  };
+
+  const handleBuilderSelect = (user: TeamMember) => {
+    const currentBuilders = form.getValues("builders") || [];
+    
+    // Check if user is already selected
+    if (!currentBuilders.includes(user.id)) {
+      // Add user id to form values
+      form.setValue("builders", [...currentBuilders, user.id]);
+      // Add user to selected builders for display
+      setSelectedBuilders(prev => [...prev, user]);
+    }
+    
+    setOpenBuilderSelect(false);
+  };
+
+  const removeApprover = (userId: string) => {
+    const currentApprovers = form.getValues("approvers") || [];
+    form.setValue("approvers", currentApprovers.filter(id => id !== userId));
+    setSelectedApprovers(prev => prev.filter(user => user.id !== userId));
+  };
+
+  const removeBuilder = (userId: string) => {
+    const currentBuilders = form.getValues("builders") || [];
+    form.setValue("builders", currentBuilders.filter(id => id !== userId));
+    setSelectedBuilders(prev => prev.filter(user => user.id !== userId));
   };
 
   return (
-    <Card>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-          <CardContent className="space-y-4 pt-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Project Title</FormLabel>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter project title" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter project description"
+                  className="resize-none min-h-[120px]"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="team"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Team</FormLabel>
+                <Select
+                  onValueChange={(value) => handleTeamChange(value)}
+                  defaultValue={field.value}
+                >
                   <FormControl>
-                    <Input placeholder="Enter project title" {...field} />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select team" />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  <SelectContent>
+                    <SelectItem value="Tech Trading">Tech Trading</SelectItem>
+                    <SelectItem value="Tech Custody & Banking">
+                      Tech Custody & Banking
+                    </SelectItem>
+                    <SelectItem value="Tech PMS">Tech PMS</SelectItem>
+                    <SelectItem value="Tech Execution">Tech Execution</SelectItem>
+                    <SelectItem value="Tech Infrastructure">
+                      Tech Infrastructure
+                    </SelectItem>
+                    <SelectItem value="Business Operations">
+                      Business Operations
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Describe the project purpose and goals" 
-                      className="min-h-[100px]" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="owner"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Owner</FormLabel>
+                <Popover open={openUserSelect} onOpenChange={setOpenUserSelect}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between",
+                          !field.value && "text-muted-foreground"
+                        )}
+                        onClick={() => loadUsers(form.getValues("team"))}
+                      >
+                        {field.value || "Select owner"}
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search users..." />
+                      <CommandEmpty>No matching users found.</CommandEmpty>
+                      <CommandGroup>
+                        {isLoadingUsers ? (
+                          <div className="flex items-center justify-center p-4">
+                            <LoadingSpinner className="h-4 w-4 mr-2" />
+                            Loading users...
+                          </div>
+                        ) : (
+                          availableUsers.map(user => (
+                            <CommandItem
+                              key={user.id}
+                              value={user.name}
+                              onSelect={() => handleOwnerSelect(user)}
+                            >
+                              <CheckIcon
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  field.value === user.name
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {user.name}
+                            </CommandItem>
+                          ))
+                        )}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="team"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Team</FormLabel>
-                    <Select
-                      onValueChange={handleTeamChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select team" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {teamOptions.map((team) => (
-                          <SelectItem key={team.id} value={team.id}>
-                            {team.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="owner_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Owner</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        const owner = teamMembers.find(member => member.id === value);
-                        form.setValue("owner", owner ? owner.name : "");
-                      }}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select owner" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {teamMembers.map((member) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="approvers"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Proposal Approvers</FormLabel>
-                  <FormControl>
-                    <MultiSelect
-                      options={teamMemberOptions}
-                      value={field.value || []}
-                      onChange={field.onChange}
-                      placeholder="Select approvers for this project"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="builders"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Build Phase Team Members</FormLabel>
-                  <FormControl>
-                    <MultiSelect
-                      options={teamMemberOptions}
-                      value={field.value || []}
-                      onChange={field.onChange}
-                      placeholder="Select developers for the build phase"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="tags"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tags</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Enter comma-separated tags" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="displayOnRoadmap"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Display on Roadmap</FormLabel>
-                    <p className="text-sm text-muted-foreground">
-                      Show this project on the company roadmap
-                    </p>
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            {form.watch("displayOnRoadmap") && (
-              <div className="space-y-4 border rounded-md p-4">
-                <h3 className="text-md font-medium">Roadmap Details</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(value as TaskStatus);
-                          }}
-                          defaultValue={field.value}
+        <div className="grid grid-cols-1 gap-6">
+          <FormItem>
+            <FormLabel>Approvers</FormLabel>
+            <Popover open={openApproverSelect} onOpenChange={setOpenApproverSelect}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between"
+                  onClick={() => loadUsers(form.getValues("team"))}
+                >
+                  Select approvers
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search users..." />
+                  <CommandEmpty>No matching users found.</CommandEmpty>
+                  <CommandGroup>
+                    {isLoadingUsers ? (
+                      <div className="flex items-center justify-center p-4">
+                        <LoadingSpinner className="h-4 w-4 mr-2" />
+                        Loading users...
+                      </div>
+                    ) : (
+                      availableUsers.map(user => (
+                        <CommandItem
+                          key={user.id}
+                          value={user.name}
+                          onSelect={() => handleApproverSelect(user)}
                         >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {statusOptions.map((status) => (
-                              <SelectItem key={status.value} value={status.value}>
-                                {status.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+                          <CheckIcon
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedApprovers.some(a => a.id === user.id)
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          {user.name}
+                        </CommandItem>
+                      ))
                     )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(value as TaskCategory);
-                          }}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categoryOptions.map((category) => (
-                              <SelectItem key={category.value} value={category.value}>
-                                {category.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {selectedApprovers.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {selectedApprovers.map(user => (
+                  <Badge key={user.id} variant="secondary" className="flex items-center gap-1">
+                    {user.name}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 rounded-full"
+                      onClick={() => removeApprover(user.id)}
+                    >
+                      <XIcon className="h-3 w-3" />
+                      <span className="sr-only">Remove</span>
+                    </Button>
+                  </Badge>
+                ))}
               </div>
             )}
-          </CardContent>
+            <FormMessage />
+          </FormItem>
 
-          <CardFooter className="flex justify-end space-x-2 border-t p-4">
-            <Button type="submit">Create Project</Button>
-          </CardFooter>
-        </form>
-      </Form>
-    </Card>
+          <FormItem>
+            <FormLabel>Builders</FormLabel>
+            <Popover open={openBuilderSelect} onOpenChange={setOpenBuilderSelect}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between"
+                  onClick={() => loadUsers(form.getValues("team"))}
+                >
+                  Select builders
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search users..." />
+                  <CommandEmpty>No matching users found.</CommandEmpty>
+                  <CommandGroup>
+                    {isLoadingUsers ? (
+                      <div className="flex items-center justify-center p-4">
+                        <LoadingSpinner className="h-4 w-4 mr-2" />
+                        Loading users...
+                      </div>
+                    ) : (
+                      availableUsers.map(user => (
+                        <CommandItem
+                          key={user.id}
+                          value={user.name}
+                          onSelect={() => handleBuilderSelect(user)}
+                        >
+                          <CheckIcon
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedBuilders.some(b => b.id === user.id)
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          {user.name}
+                        </CommandItem>
+                      ))
+                    )}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {selectedBuilders.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {selectedBuilders.map(user => (
+                  <Badge key={user.id} variant="secondary" className="flex items-center gap-1">
+                    {user.name}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 rounded-full"
+                      onClick={() => removeBuilder(user.id)}
+                    >
+                      <XIcon className="h-3 w-3" />
+                      <span className="sr-only">Remove</span>
+                    </Button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <FormMessage />
+          </FormItem>
+        </div>
+
+        <FormField
+          control={form.control}
+          name="tags"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tags</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter comma-separated tags" {...field} />
+              </FormControl>
+              <FormDescription>
+                Enter tags separated by commas (e.g. "frontend, ui, urgent")
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="displayOnRoadmap"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>Display on Roadmap</FormLabel>
+                <FormDescription>
+                  Show this project on the product roadmap
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked);
+                    handleDisplayOnRoadmapChange(checked);
+                  }}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {showRoadmapSettings && <RoadmapSettings form={form} />}
+
+        <Button type="submit" className="w-full">
+          Create Project
+        </Button>
+      </form>
+    </Form>
   );
 }
+
+// Utility components
+const ChevronDown = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const XIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const LoadingSpinner = ({ className }: { className?: string }) => (
+  <svg
+    className={cn("animate-spin", className)}
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+);

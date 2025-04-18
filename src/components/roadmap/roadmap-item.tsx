@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, GripHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { useProjects } from "@/context/project-context";
+import { toast } from "sonner";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +26,10 @@ interface RoadmapItemProps {
   topPos: string;
   onMoveStart: () => void;
   onProjectClick: (projectId: string) => void;
-  onDragMove?: (rowIndex: number) => void; // Callback for drag move
+  onDragMove?: (rowIndex: number) => void;
+  teamBoundaries: { name: string, top: number, bottom: number }[];
+  isLastRow: boolean;
+  onCollision?: (isColliding: boolean) => void;
 }
 
 export function RoadmapItem({
@@ -38,6 +42,9 @@ export function RoadmapItem({
   onMoveStart,
   onProjectClick,
   onDragMove,
+  teamBoundaries,
+  isLastRow,
+  onCollision
 }: RoadmapItemProps) {
   const { updateProject } = useProjects();
   const [isDragging, setIsDragging] = useState(false);
@@ -46,6 +53,8 @@ export function RoadmapItem({
   const [position, setPosition] = useState({ left: leftPos, top: topPos });
   const [itemWidth, setItemWidth] = useState(width);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isColliding, setIsColliding] = useState(false);
+  const [crossingTeamBoundary, setCrossingTeamBoundary] = useState<string | null>(null);
   const itemRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const initialDateRef = useRef({ startDate: project.startDate, endDate: project.endDate });
@@ -53,7 +62,8 @@ export function RoadmapItem({
   const isDraggingRef = useRef<boolean>(false);
   const isResizingRef = useRef<boolean>(false);
   const currentRowRef = useRef<number>(0);
-  const TEAM_LABEL_WIDTH = 100; // Assuming this constant is defined in product-roadmap
+  const currentTeamRef = useRef<string>(project.team);
+  const TEAM_LABEL_WIDTH = 160;
 
   useEffect(() => {
     if (topPos) {
@@ -124,6 +134,56 @@ export function RoadmapItem({
       setItemWidth(width);
     }
   }, [leftPos, topPos, width, isDragging, isResizing]);
+
+  // Check if this item collides with any other project items
+  const checkCollision = () => {
+    if (!itemRef.current || !timelineRef.current) return false;
+    
+    const thisRect = itemRef.current.getBoundingClientRect();
+    const thisTop = thisRect.top;
+    const thisBottom = thisRect.bottom;
+    const thisLeft = thisRect.left;
+    const thisRight = thisRect.right;
+    
+    // Get all roadmap items except this one
+    const allItems = timelineRef.current.querySelectorAll('.roadmap-item');
+    
+    let collides = false;
+    
+    allItems.forEach(item => {
+      if (item === itemRef.current) return; // Skip self
+      
+      const otherRect = item.getBoundingClientRect();
+      
+      // Check if items overlap horizontally and vertically
+      if (
+        thisLeft < otherRect.right && 
+        thisRight > otherRect.left &&
+        thisTop < otherRect.bottom && 
+        thisBottom > otherRect.top
+      ) {
+        collides = true;
+      }
+    });
+    
+    setIsColliding(collides);
+    if (onCollision) onCollision(collides);
+    
+    return collides;
+  };
+
+  // Check which team's area the item is currently in
+  const checkTeamBoundary = (clientY: number) => {
+    if (!teamBoundaries.length) return null;
+    
+    for (const boundary of teamBoundaries) {
+      if (clientY >= boundary.top && clientY <= boundary.bottom) {
+        return boundary.name;
+      }
+    }
+    
+    return null;
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.resize-handle')) return;
@@ -207,6 +267,14 @@ export function RoadmapItem({
       onDragMove(rowIndex);
     }
     
+    // Check which team's section the item is being dragged into
+    const newTeam = checkTeamBoundary(e.clientY);
+    if (newTeam && newTeam !== currentTeamRef.current) {
+      setCrossingTeamBoundary(newTeam);
+    } else {
+      setCrossingTeamBoundary(null);
+    }
+    
     setPosition({
       left: leftPercent,
       top: topPx
@@ -223,6 +291,11 @@ export function RoadmapItem({
     
     project.startDate = newStartDate;
     project.endDate = newEndDate;
+    
+    // Check for collisions
+    setTimeout(() => {
+      checkCollision();
+    }, 0);
   };
 
   const handleResizeMove = (e: MouseEvent) => {
@@ -233,7 +306,6 @@ export function RoadmapItem({
     
     const newWidth = Math.max(50, e.clientX - itemRect.left);
     
-    const TEAM_LABEL_WIDTH = 100;  // Define it again in this context for clarity
     const weekWidth = (parentRect.width - TEAM_LABEL_WIDTH) / 52;
     const weeks = Math.max(1, Math.round(newWidth / weekWidth));
     const snappedWidth = weeks * weekWidth;
@@ -245,16 +317,36 @@ export function RoadmapItem({
     const newEndDate = new Date(project.startDate!.getTime() + (weeks * msInWeek));
     
     project.endDate = newEndDate;
+    
+    // Check for collisions after resize
+    setTimeout(() => {
+      checkCollision();
+    }, 0);
   };
 
   const handleMouseUp = () => {
     if (isDraggingRef.current) {
+      const clickDuration = Date.now() - mouseDownTimeRef.current;
       isDraggingRef.current = false;
       setIsDragging(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       
-      updateProject(project);
+      // Check if we crossed into a different team's section
+      if (crossingTeamBoundary && crossingTeamBoundary !== project.team) {
+        const updatedProject = {
+          ...project,
+          team: crossingTeamBoundary,
+        };
+        updateProject(updatedProject);
+        toast.success(`Project moved to ${crossingTeamBoundary} team`);
+        currentTeamRef.current = crossingTeamBoundary;
+      } else {
+        updateProject(project);
+      }
+      
+      setCrossingTeamBoundary(null);
+      setIsColliding(false);
     }
   };
 
@@ -266,6 +358,7 @@ export function RoadmapItem({
       document.removeEventListener('mouseup', handleResizeEnd);
       
       updateProject(project);
+      setIsColliding(false);
     }
   };
 
@@ -289,7 +382,6 @@ export function RoadmapItem({
   };
 
   const handleConfirmDelete = () => {
-    const { updateProject } = useProjects();
     updateProject({
       ...project,
       isDeleted: true
@@ -297,11 +389,22 @@ export function RoadmapItem({
     setShowDeleteDialog(false);
   };
 
+  // Get border style based on collision state
+  const getBorderStyle = () => {
+    if (isColliding) {
+      return "border-2 border-red-500";
+    }
+    if (crossingTeamBoundary) {
+      return "border-2 border-purple-500";
+    }
+    return "border";
+  };
+
   return (
     <>
       <div
         ref={itemRef}
-        className={`absolute ${teamColor} ${statusStyle} border rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow ${isDragging || isResizing ? 'opacity-75 z-50' : ''}`}
+        className={`absolute ${teamColor} ${statusStyle} ${getBorderStyle()} rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow ${isDragging || isResizing ? 'opacity-75 z-50' : ''} roadmap-item`}
         style={{ 
           left: isDragging ? position.left : leftPos, 
           width: isResizing ? itemWidth : width,
@@ -345,7 +448,16 @@ export function RoadmapItem({
         
         {isDragging && (
           <div className="absolute -top-8 left-0 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50">
-            Dragging {project.title}
+            {crossingTeamBoundary && crossingTeamBoundary !== project.team ? 
+              `Moving to ${crossingTeamBoundary}` : 
+              `Dragging ${project.title}`
+            }
+          </div>
+        )}
+        
+        {isColliding && (
+          <div className="absolute -bottom-8 left-0 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50">
+            Collision detected!
           </div>
         )}
       </div>
