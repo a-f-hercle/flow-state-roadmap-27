@@ -3,7 +3,7 @@ import { useProjects } from "@/context/project-context";
 import { ProjectFormValues } from "@/components/project/types/project-form";
 import { NewProjectForm } from "@/components/project/new-project-form";
 import { useNavigate } from "react-router-dom";
-import { ProjectPhase, Project, Review } from "@/types";
+import { ProjectPhase, Project, Review, TaskStatus, TaskCategory } from "@/types";
 import { mockReviewers } from "@/data/mock-data";
 
 export default function ProjectNew() {
@@ -22,7 +22,7 @@ export default function ProjectNew() {
     
     const review: Review = {
       id: Date.now().toString(),
-      type: "OK1", // Changed from "OK Review" to "OK1"
+      type: "OK1", 
       reviewers: mockReviewers.map((reviewer) => ({
         id: reviewer.id,
         status: "pending",
@@ -61,10 +61,10 @@ export default function ProjectNew() {
         projectData.endDate = new Date(values.endDate);
       }
       if (values.status) {
-        projectData.status = values.status;
+        projectData.status = values.status as TaskStatus;
       }
       if (values.category) {
-        projectData.category = values.category;
+        projectData.category = values.category as TaskCategory;
       }
     }
     
